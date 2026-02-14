@@ -2,80 +2,590 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <title>Dashboard Municipal</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Painel de Indicadores - Município</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 40px;
-      background: #f5f5f5;
+    :root{
+      /* Paleta inspirada no site (ajuste fino depois, se quiser) */
+      --verde-escuro:#1f6f3d;
+      --verde-medio:#2e8b57;
+      --verde-claro:#a4c639;
+      --cinza-fundo:#f4f6f8;
+      --branco:#ffffff;
+      --texto:#0f172a;
+      --muted:#64748b;
+      --borda:#e5e7eb;
+      --sombra: 0 6px 20px rgba(2, 6, 23, 0.08);
+      --radius:14px;
+      --maxw: 1180px;
     }
 
-    h1 {
-      margin-bottom: 30px;
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--cinza-fundo);
+      color: var(--texto);
     }
 
-    .chart-container {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      max-width: 900px;
+    /* HEADER */
+    .topbar{
+      background: var(--verde-escuro);
+      color: var(--branco);
+      padding: 14px 16px;
     }
+    .topbar-inner{
+      max-width: var(--maxw);
+      margin: 0 auto;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 14px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width: 0;
+    }
+    .brand .logos{
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+    .brand img{
+      height:46px;
+      width:auto;
+      display:block;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 10px;
+      padding: 6px;
+    }
+    .brand .title{
+      display:flex;
+      flex-direction:column;
+      line-height:1.1;
+      min-width:0;
+    }
+    .brand .title strong{
+      font-size: 16px;
+      letter-spacing: .2px;
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+    .brand .title span{
+      font-size: 12px;
+      opacity: .9;
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+
+    .meta{
+      text-align:right;
+      font-size: 12px;
+      opacity: .9;
+      white-space: nowrap;
+    }
+
+    /* NAV */
+    .nav{
+      background: var(--verde-claro);
+      padding: 10px 16px;
+      border-bottom: 3px solid rgba(0,0,0,0.06);
+    }
+    .nav-inner{
+      max-width: var(--maxw);
+      margin: 0 auto;
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .tab{
+      appearance:none;
+      border: 0;
+      cursor:pointer;
+      background: rgba(255,255,255,0.55);
+      color: #0b2a16;
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-weight: 700;
+      transition: .15s ease;
+    }
+    .tab:hover{ transform: translateY(-1px); }
+    .tab.active{
+      background: var(--verde-escuro);
+      color: var(--branco);
+    }
+
+    /* CONTENT */
+    main{
+      max-width: var(--maxw);
+      margin: 0 auto;
+      padding: 18px 16px 34px;
+    }
+    .header-row{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    h1{
+      margin: 10px 0 4px;
+      font-size: 26px;
+      letter-spacing: .2px;
+    }
+    .subtitle{
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0 0 6px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 14px;
+    }
+    .card{
+      grid-column: span 12;
+      background: var(--branco);
+      border: 1px solid var(--borda);
+      border-radius: var(--radius);
+      box-shadow: var(--sombra);
+      padding: 14px;
+      overflow:hidden;
+    }
+    @media (min-width: 900px){
+      .card.half{ grid-column: span 6; }
+    }
+
+    .card-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .card-title{
+      margin:0;
+      font-size: 16px;
+      font-weight: 800;
+    }
+    .badge{
+      font-size: 11px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(46,139,87,0.12);
+      border: 1px solid rgba(46,139,87,0.25);
+      color: #14532d;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .canvas-wrap{
+      background: linear-gradient(180deg, rgba(244,246,248,0.65), rgba(244,246,248,0));
+      border-radius: 12px;
+      padding: 10px;
+      border: 1px dashed rgba(15,23,42,0.12);
+    }
+
+    .error{
+      padding: 12px;
+      border-radius: 12px;
+      background: #fff1f2;
+      border: 1px solid #fecdd3;
+      color: #9f1239;
+      font-size: 13px;
+      line-height: 1.35;
+      white-space: pre-wrap;
+    }
+
+    footer{
+      max-width: var(--maxw);
+      margin: 0 auto;
+      padding: 12px 16px 26px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .footbox{
+      border-top: 1px solid rgba(15,23,42,0.12);
+      padding-top: 12px;
+      display:flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content:space-between;
+      align-items:center;
+    }
+    a{ color: inherit; }
   </style>
 </head>
 <body>
 
-  <h1>CAGED - Movimentação de Empregos</h1>
+  <!-- HEADER -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="logos">
+          <!-- Placeholders: você só troca as URLs no JS -->
+          <img id="https://i.postimg.cc/kGD38KNr/LOGO-PREF-SVG-(1).jpg" alt="Logo da Prefeitura" />
+          <img id="https://i.postimg.cc/SRjF8CLx/LOGO-PREF-SVG.jpg" alt="Logo da Secretaria" />
+        </div>
+        <div class="title">
+          <strong>Painel de Indicadores Municipais</strong>
+          <span>Dados oficiais • Atualização via Google Sheets</span>
+        </div>
+      </div>
+      <div class="meta" id="metaAtualizacao">—</div>
+    </div>
+  </header>
 
-  <div class="chart-container">
-    <canvas id="cagedChart"></canvas>
-  </div>
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="nav-inner" id="tabs"></div>
+  </nav>
+
+  <!-- CONTENT -->
+  <main>
+    <div class="header-row">
+      <div>
+        <h1 id="pageTitle">—</h1>
+        <p class="subtitle" id="pageSubtitle">—</p>
+      </div>
+    </div>
+
+    <section class="grid" id="grid"></section>
+  </main>
+
+  <footer>
+    <div class="footbox">
+      <div>© <span id="anoAtual"></span> • Painel de Indicadores</div>
+      <div>Desenvolvido para navegação pública • Fonte: SMDE + Google Sheets</div>
+    </div>
+  </footer>
 
   <script>
-    const CSV_URL = "https://docs.google.com/spreadsheets/d/1r_mJ3kj-yEqRf5z-Lahj80EkE_nUW9bNCJS5I9_I_Zw/export?format=csv&gid=1787329921";
+    // =========================
+    // 1) CONFIGURAÇÕES BÁSICAS
+    // =========================
 
-    Papa.parse(CSV_URL, {
-      download: true,
-      header: true,
-      complete: function(results) {
-        const data = results.data;
+    // Placeholders das logos (troque depois por URL pública ou caminho no repo)
+    const LOGO_PREFEITURA_URL = ""; // ex: "https://.../logo-prefeitura.png" ou "./assets/logo-prefeitura.png"
+    const LOGO_SECRETARIA_URL = ""; // ex: "https://.../logo-secretaria.png" ou "./assets/logo-secretaria.png"
 
-        const anos = data.map(row => row.ANO);
-        const admitidos = data.map(row => Number(row.ADMITIDOS));
-        const demitidos = data.map(row => Number(row.DEMITIDOS));
+    // ID da sua planilha (já confirmado)
+    const SPREADSHEET_ID = "1r_mJ3kj-yEqRf5z-Lahj80EkE_nUW9bNCJS5I9_I_Zw";
 
-        const ctx = document.getElementById('cagedChart').getContext('2d');
+    function csvUrlFromGid(gid){
+      return `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${gid}`;
+    }
 
-        new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: anos,
-            datasets: [
-              {
-                label: 'Admitidos',
-                data: admitidos,
-                backgroundColor: '#16a34a'
-              },
-              {
-                label: 'Demitidos',
-                data: demitidos,
-                backgroundColor: '#dc2626'
-              }
-            ]
+    // =========================
+    // 2) MAPA DO SITE (ABAS + GRÁFICOS)
+    // =========================
+    // Você só precisa:
+    // - adicionar o gid correto em cada item
+    // - ajustar o tipo do gráfico se quiser (bar/line)
+    // - escolher tamanho (half ou full)
+
+    const SITE = [
+      {
+        key: "empregabilidade",
+        label: "Empregabilidade",
+        title: "Empregabilidade",
+        subtitle: "Indicadores do mercado de trabalho e CAGED.",
+        items: [
+          {
+            title: "CAGED - Movimentação de Empregos",
+            gid: "1787329921",     // ✅ já funcionando
+            chart: "bar",
+            size: "full",
+            badge: "CAGED",
           },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: {
-                position: 'top'
-              }
+
+          // Exemplos (preencha os gid)
+          { title: "POSTOS CAGED", gid: "1538037155", chart: "bar", size: "half", badge: "CAGED" },
+          { title: "SALDO CAGED",gid: "1664529561", chart: "line", size: "full", badge: "CAGED" },
+          { title: "SETOR CAGED",  gid: "667989355", chart: "bar", size: "half", badge: "CAGED" },
+          { title: "ESTOQUE CAGED",gid: "183085482", chart: "line", size: "full", badge: "CAGED" },
+        ]
+      },
+      {
+        key: "agronegocio",
+        label: "Agronegócio",
+        title: "Agronegócio",
+        subtitle: "Produção e indicadores agrícolas.",
+        items: [
+          { title: "SOJA",    gid: "1259725950", chart: "bar", size: "half", badge: "AGRO" },
+          { title: "MILHO",   gid: "529160465", chart: "bar", size: "half", badge: "AGRO" },
+          { title: "ALGODÃO", gid: "1996427760", chart: "bar", size: "half", badge: "AGRO" },
+          { title: "PLUMA",   gid: "1559046357", chart: "bar", size: "half", badge: "AGRO" },
+          { title: "CAROÇO",  gid: "971630155", chart: "bar", size: "half", badge: "AGRO" },
+        ]
+      },
+      {
+        key: "economia",
+        label: "Economia",
+        title: "Economia",
+        subtitle: "Indicadores econômicos, PIB, exportações e empresas.",
+        items: [
+          { title: "PIB",           gid: "550123213", chart: "line", size: "half", badge: "ECONOMIA" },
+          { title: "PIB PERCAPITA", gid: "691433788", chart: "line", size: "half", badge: "ECONOMIA" },
+          { title: "EXPORTAÇÕES",   gid: "1610374354", chart: "bar",  size: "half", badge: "ECONOMIA" },
+          { title: "EMPRESAS",      gid: "511808654", chart: "bar",  size: "half", badge: "ECONOMIA" },
+          { title: "POPULAÇÃO",     gid: "135525471", chart: "line", size: "half", badge: "SOCIAL" },
+          { title: "IDEB",          gid: "1813118854", chart: "line", size: "half", badge: "SOCIAL" },
+          { title: "IDH",           gid: "347730474", chart: "line", size: "half", badge: "SOCIAL" },
+        ]
+      }
+    ];
+
+    // =========================
+    // 3) RENDER: HEADER / NAV
+    // =========================
+
+    function applyLogos(){
+      const pref = document.getElementById("logoPrefeitura");
+      const sec  = document.getElementById("logoSecretaria");
+
+      // Se não tiver URL ainda, mostra placeholder visual (mantém o "bloco")
+      if (LOGO_PREFEITURA_URL) pref.src = LOGO_PREFEITURA_URL;
+      else pref.style.opacity = "0.35";
+
+      if (LOGO_SECRETARIA_URL) sec.src = LOGO_SECRETARIA_URL;
+      else sec.style.opacity = "0.35";
+    }
+
+    function renderTabs(activeKey){
+      const tabs = document.getElementById("tabs");
+      tabs.innerHTML = "";
+
+      SITE.forEach(cat => {
+        const btn = document.createElement("button");
+        btn.className = "tab" + (cat.key === activeKey ? " active" : "");
+        btn.textContent = cat.label;
+        btn.onclick = () => {
+          location.hash = `#${cat.key}`;
+        };
+        tabs.appendChild(btn);
+      });
+    }
+
+    // =========================
+    // 4) CSV -> CHART (genérico)
+    // =========================
+
+    const chartInstances = new Map(); // id -> Chart instance
+
+    function normalizeKey(k){
+      // remove espaços e normaliza "ANO" / "Ano" etc.
+      return String(k || "").trim();
+    }
+
+    function toNumber(v){
+      // remove separadores, R$, %, etc (se algum dia aparecer)
+      if (v === null || v === undefined) return NaN;
+      const s = String(v).trim()
+        .replace(/\./g, "")     // milhar
+        .replace(",", ".")      // decimal
+        .replace(/[^\d\.\-]/g, "");
+      const n = Number(s);
+      return Number.isFinite(n) ? n : NaN;
+    }
+
+    function buildDatasets(rows){
+      // rows: array de objetos com chaves (header:true)
+      // Esperado: primeira coluna ANO + 1..N séries
+      if (!rows.length) return { labels: [], datasets: [] };
+
+      // Descobrir colunas (pegando do primeiro row)
+      const keys = Object.keys(rows[0] || {}).map(normalizeKey).filter(Boolean);
+
+      // Escolhe uma coluna de ano (prioriza ANO)
+      let yearKey = keys.find(k => k.toUpperCase() === "ANO") || keys[0];
+      const valueKeys = keys.filter(k => k !== yearKey);
+
+      // Limpa linhas vazias e anos vazios
+      const clean = rows
+        .filter(r => r && String(r[yearKey] ?? "").trim() !== "")
+        .map(r => {
+          const out = {};
+          keys.forEach(k => out[k] = r[k]);
+          return out;
+        });
+
+      const labels = clean.map(r => String(r[yearKey]).trim());
+
+      const palette = ["#16a34a", "#dc2626", "#2563eb", "#f59e0b", "#7c3aed", "#0ea5e9"];
+      const datasets = valueKeys.map((k, idx) => {
+        const data = clean.map(r => toNumber(r[k]));
+        return {
+          label: k,
+          data,
+          backgroundColor: palette[idx % palette.length],
+          borderColor: palette[idx % palette.length],
+          borderWidth: 2,
+        };
+      });
+
+      return { labels, datasets };
+    }
+
+    function renderChartInto(canvasId, chartType, parsed){
+      const ctx = document.getElementById(canvasId).getContext("2d");
+
+      // destrói chart anterior se existir (evita bugs ao trocar de aba)
+      if (chartInstances.has(canvasId)){
+        chartInstances.get(canvasId).destroy();
+        chartInstances.delete(canvasId);
+      }
+
+      const isLine = chartType === "line";
+      const chart = new Chart(ctx, {
+        type: isLine ? "line" : "bar",
+        data: parsed,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "top" },
+            tooltip: { mode: "index", intersect: false }
+          },
+          interaction: { mode: "index", intersect: false },
+          scales: {
+            x: { grid: { display: false } },
+            y: { beginAtZero: true }
+          }
+        }
+      });
+
+      chartInstances.set(canvasId, chart);
+    }
+
+    function loadCsvToChart({ gid, chart, canvasId, onError, onMeta }) {
+      if (!gid) {
+        onError("GID não configurado para este indicador.\n\nComo resolver:\n- Abra a aba correspondente no Google Sheets\n- Veja a URL: ...edit#gid=XXXX\n- Copie o número e cole no campo gid deste item no código.");
+        return;
+      }
+
+      const url = csvUrlFromGid(gid);
+
+      Papa.parse(url, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          const rows = (results.data || []).filter(Boolean);
+
+          // se tiver linhas com tudo vazio, remove
+          const cleaned = rows.filter(r => Object.values(r).some(v => String(v ?? "").trim() !== ""));
+
+          const parsed = buildDatasets(cleaned);
+
+          // Ajuste automático: se só 1 série, linha fica mais bonita
+          const finalType = (chart === "auto")
+            ? (parsed.datasets.length <= 1 ? "line" : "bar")
+            : chart;
+
+          renderChartInto(canvasId, finalType, parsed);
+
+          // meta (último ano)
+          const lastLabel = parsed.labels[parsed.labels.length - 1];
+          if (lastLabel && onMeta) onMeta(lastLabel);
+        },
+        error: (err) => onError("Erro ao baixar/ler CSV: " + (err?.message || String(err)))
+      });
+    }
+
+    // =========================
+    // 5) RENDER: PÁGINA (por categoria)
+    // =========================
+
+    function renderCategory(catKey){
+      const cat = SITE.find(c => c.key === catKey) || SITE[0];
+
+      renderTabs(cat.key);
+
+      document.getElementById("pageTitle").textContent = cat.title;
+      document.getElementById("pageSubtitle").textContent = cat.subtitle;
+
+      const grid = document.getElementById("grid");
+      grid.innerHTML = "";
+
+      // meta: última atualização = maior ano encontrado nos gráficos carregados
+      let maxYear = null;
+      const metaEl = document.getElementById("metaAtualizacao");
+      metaEl.textContent = "Carregando…";
+
+      cat.items.forEach((item, idx) => {
+        const card = document.createElement("article");
+        card.className = "card " + (item.size === "half" ? "half" : "");
+        const canvasId = `chart_${cat.key}_${idx}`;
+
+        card.innerHTML = `
+          <div class="card-head">
+            <div>
+              <h3 class="card-title">${item.title}</h3>
+            </div>
+            <div class="badge">${item.badge || "INDICADOR"}</div>
+          </div>
+
+          <div class="canvas-wrap" style="height:340px;">
+            <canvas id="${canvasId}"></canvas>
+            <div id="${canvasId}_err" class="error" style="display:none;"></div>
+          </div>
+        `;
+
+        grid.appendChild(card);
+
+        const errBox = document.getElementById(`${canvasId}_err`);
+        function showErr(msg){
+          errBox.style.display = "block";
+          errBox.textContent = msg;
+        }
+
+        loadCsvToChart({
+          gid: item.gid,
+          chart: item.chart || "auto",
+          canvasId,
+          onError: showErr,
+          onMeta: (year) => {
+            const y = Number(year);
+            if (Number.isFinite(y)) {
+              if (maxYear === null || y > maxYear) maxYear = y;
+              metaEl.textContent = maxYear ? `Última atualização (ano base): ${maxYear}` : "—";
             }
           }
         });
+      });
+
+      if (!cat.items.length) {
+        grid.innerHTML = `<div class="card"><div class="error">Nenhum indicador configurado para esta aba.</div></div>`;
+        metaEl.textContent = "—";
       }
-    });
+    }
+
+    // =========================
+    // 6) INICIALIZAÇÃO + ROTAS (hash)
+    // =========================
+
+    function getHashKey(){
+      const k = (location.hash || "").replace("#","").trim();
+      return k || SITE[0].key;
+    }
+
+    window.addEventListener("hashchange", () => renderCategory(getHashKey()));
+
+    document.getElementById("anoAtual").textContent = String(new Date().getFullYear());
+    applyLogos();
+    renderCategory(getHashKey());
   </script>
 
 </body>
