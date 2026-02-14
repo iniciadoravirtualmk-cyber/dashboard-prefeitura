@@ -233,11 +233,11 @@
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand">
-        <div class="logos">
-          <!-- Placeholders: você só troca as URLs no JS -->
-          <img id="https://i.postimg.cc/kGD38KNr/LOGO-PREF-SVG-(1).jpg" alt="Logo tipo Prefeitura" />
-          <img id="https://i.postimg.cc/SRjF8CLx/LOGO-PREF-SVG.jpg" alt="Logo tipo Secretaria" />
-        </div>
+       <div class="logos">
+  <img id="logoPrefeitura" alt="Logo tipo Prefeitura" />
+  <img id="logoSecretaria" alt="Logo tipo Secretaria" />
+</div>
+
         <div class="title">
           <strong>Painel de Indicadores Municipais</strong>
           <span>Dados oficiais • Atualização via Google Sheets</span>
@@ -277,8 +277,9 @@
     // =========================
 
     // Placeholders das logos (troque depois por URL pública ou caminho no repo)
-    const LOGO_PREFEITURA_URL = ""; // ex: "https://.../logo-prefeitura.png" ou "./assets/logo-prefeitura.png"
-    const LOGO_SECRETARIA_URL = ""; // ex: "https://.../logo-secretaria.png" ou "./assets/logo-secretaria.png"
+   const LOGO_PREFEITURA_URL = "https://i.postimg.cc/kGD38KNr/LOGO-PREF-SVG-(1).jpg";
+   const LOGO_SECRETARIA_URL = "https://i.postimg.cc/SRjF8CLx/LOGO-PREF-SVG.jpg";
+
 
     // ID da sua planilha (já confirmado)
     const SPREADSHEET_ID = "1r_mJ3kj-yEqRf5z-Lahj80EkE_nUW9bNCJS5I9_I_Zw";
@@ -351,17 +352,31 @@
     // 3) RENDER: HEADER / NAV
     // =========================
 
-    function applyLogos(){
-      const pref = document.getElementById("logoPrefeitura");
-      const sec  = document.getElementById("logoSecretaria");
+   function applyLogos(){
+  const pref = document.getElementById("logoPrefeitura");
+  const sec  = document.getElementById("logoSecretaria");
 
-      // Se não tiver URL ainda, mostra placeholder visual (mantém o "bloco")
-      if (LOGO_PREFEITURA_URL) pref.src = LOGO_PREFEITURA_URL;
-      else pref.style.opacity = "0.35";
+  // Se por algum motivo o HTML mudar, não deixa o site morrer
+  if (!pref || !sec) {
+    console.warn("Logos não encontradas. Verifique ids: logoPrefeitura/logoSecretaria");
+    return;
+  }
 
-      if (LOGO_SECRETARIA_URL) sec.src = LOGO_SECRETARIA_URL;
-      else sec.style.opacity = "0.35";
-    }
+  if (LOGO_PREFEITURA_URL) {
+    pref.src = LOGO_PREFEITURA_URL;
+    pref.style.opacity = "1";
+  } else {
+    pref.style.opacity = "0.35";
+  }
+
+  if (LOGO_SECRETARIA_URL) {
+    sec.src = LOGO_SECRETARIA_URL;
+    sec.style.opacity = "1";
+  } else {
+    sec.style.opacity = "0.35";
+  }
+}
+
 
     function renderTabs(activeKey){
       const tabs = document.getElementById("tabs");
