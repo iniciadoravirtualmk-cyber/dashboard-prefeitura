@@ -518,10 +518,10 @@
         subtitle: "Indicadores do mercado de trabalho e CAGED.",
         items: [
           { title: "CAGED - Movimentação de Empregos", gid: "1787329921", badge: "CAGED", chart: "line" },
-          { title: "POSTOS CAGED", gid: "1538037155", badge: "CAGED", chart: "bar" },   // barras
-          { title: "SALDO CAGED", gid: "1664529561", badge: "CAGED", chart: "line" },
-          { title: "SETOR CAGED", gid: "667989355", badge: "CAGED", chart: "bar" },    // barras
-          { title: "ESTOQUE CAGED", gid: "183085482", badge: "CAGED", chart: "line" },
+          { title: "POSTOS DE TRABALHO CAGED", gid: "1538037155", badge: "CAGED", chart: "bar" },   // barras
+          { title: "SALDO ANUAL CAGED", gid: "1664529561", badge: "CAGED", chart: "line" },
+          { title: "TRABALHADORES POR SETORE CAGED", gid: "667989355", badge: "CAGED", chart: "bar" },    // barras
+          { title: "ESTOQUE TRABALHADORES CAGED", gid: "183085482", badge: "CAGED", chart: "line" },
         ],
       },
       {
@@ -563,8 +563,8 @@
 
     // ========= UI =========
     function applyLogos(){
-      const pref = document.getElementById("logoPrefeitura");
-      const sec  = document.getElementById("logoSecretaria");
+     const LOGO_PREFEITURA_URL = "./logo-prefeitura.svg";
+    const LOGO_SECRETARIA_URL = "./logo-secretaria.svg";
       if (pref) pref.src = LOGO_PREFEITURA_URL;
       if (sec) sec.src = LOGO_SECRETARIA_URL;
     }
