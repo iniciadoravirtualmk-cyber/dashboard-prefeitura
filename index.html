@@ -611,69 +611,77 @@
       return { labels, datasets };
     }
 
-    function renderChartInto(canvasId, parsed, mode){
-      const canvas = document.getElementById(canvasId);
-      if (!canvas) return;
+    function renderChartInto(canvasId, parsed, mode) {
 
-      const ctx = canvas.getContext("2d");
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
 
-      if (chartInstances.has(canvasId)){
-        chartInstances.get(canvasId).destroy();
-        chartInstances.delete(canvasId);
+  const ctx = canvas.getContext("2d");
+
+  if (chartInstances.has(canvasId)){
+    chartInstances.get(canvasId).destroy();
+    chartInstances.delete(canvasId);
+  }
+
+  const isStacked = mode === "stacked";
+
+  const chart = new Chart(ctx, {
+    type: isStacked ? "bar" : "line",
+    data: parsed,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "top" }
+      },
+      scales: {
+        x: { stacked: isStacked },
+        y: { stacked: isStacked, beginAtZero: true }
       }
-
-      const isStacked = mode === "stacked";
-      const type = isStacked ? "bar" : "line";
-
-      const chart = new Chart(ctx, {
-        type,
-        data: parsed,
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { position: "top" },
-            tooltip: { mode: "index", intersect: false }
-          },
-          interaction: { mode: "index", intersect: false },
-          scales: {
-            x: { stacked: isStacked, grid: { display: false } },
-            y: { stacked: isStacked, beginAtZero: true }
-          }
-        }
-      });
-
-      chartInstances.set(canvasId, chart);
     }
+  });
 
-    function loadCsvToChart({ gid, canvasId, mode, onError, onMeta }){
-      if (!gid) {
-        onError("GID não configurado para este indicador.");
-        return;
+  chartInstances.set(canvasId, chart);
+}
+  loadCsvToChart({
+  gid: item.gid,
+  canvasId,
+  mode: item.chart === "stacked" ? "stacked" : "line",
+  onError: showErr,
+  onMeta: (year) => {
+
+
+  const url = csvUrlFromGid(gid);
+
+  Papa.parse(url, {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: (results) => {
+
+      const rows = (results.data || []).filter(Boolean);
+
+      const cleaned = rows.filter(r =>
+        Object.values(r).some(v => String(v ?? "").trim() !== "")
+      );
+
+      const parsed = buildDatasets(cleaned);
+
+      renderChartInto(canvasId, parsed, mode);
+
+      const years = parsed.labels
+        .map(x => Number(String(x).trim()))
+        .filter(n => Number.isFinite(n));
+
+      if (years.length && onMeta) {
+        onMeta(Math.max(...years));
       }
+    },
+    error: (err) =>
+      onError("Erro ao baixar CSV: " + (err?.message || String(err)))
+  });
+}
 
-      Papa.parse(csvUrlFromGid(gid), {
-        download: true,
-        header: true,
-        skipEmptyLines: true,
-        complete: (results) => {
-          const rows = (results.data || []).filter(Boolean);
-          const cleaned = rows.filter(r =>
-            Object.values(r).some(v => String(v ?? "").trim() !== "")
-          );
-
-          const parsed = buildDatasets(cleaned, { naAsZero: mode === "stacked" });
-          renderChartInto(canvasId, parsed, mode);
-
-          const years = parsed.labels
-            .map(x => Number(String(x).trim()))
-            .filter(n => Number.isFinite(n));
-
-          if (years.length && onMeta) onMeta(Math.max(...years));
-        },
-        error: (err) => onError("Erro ao baixar/ler CSV: " + (err?.message || String(err)))
-      });
-    }
 
     // ===== PAGES =====
     function renderContato(){
