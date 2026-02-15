@@ -88,6 +88,67 @@
     @media (max-width: 520px){
       .logoBox{ width: 120px; height: 120px; }
     }
+.hero-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:14px;
+  padding-bottom:12px;
+}
+
+.hero-top-left{
+  display:flex;
+  align-items:flex-start;
+  gap:16px;
+}
+
+@media (max-width: 900px){
+  .hero-top-left{
+    flex-direction:column;
+    gap:12px;
+  }
+}
+
+/* Card de destaque no topo */
+.top-highlight{
+  width: 320px;
+  max-width: 38vw;
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 16px;
+  padding: 12px 12px;
+  box-shadow: 0 10px 20px rgba(0,0,0,.14);
+}
+
+@media (max-width: 900px){
+  .top-highlight{
+    width: 100%;
+    max-width: 520px;
+  }
+}
+
+.top-highlight h3{
+  margin: 10px 0 8px;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.15;
+  color:#fff;
+}
+
+.top-highlight p{
+  margin: 0;
+  opacity: .95;
+  font-size: 13.8px;
+  line-height: 1.55;
+  color:#fff;
+}
+
+/* pill amarelinha no destaque */
+.pill-yellow{
+  background: rgba(245,197,66,.22);
+  border: 1px solid rgba(245,197,66,.45);
+  color: #fff;
+}
 
     .hero-main{
       display:grid;
@@ -291,13 +352,26 @@
   <!-- HERO -->
   <header class="hero">
     <div class="wrap">
-      <div class="hero-top">
-       <div class="logos">
-  <div class="logoBox"><img src="./logo-prefeitura.svg" alt="Prefeitura de Campo Verde"></div>
+     <div class="hero-top">
+  <div class="hero-top-left">
+    <div class="logos">
+      <div class="logoBox">
+        <img src="./logo-prefeitura.svg" alt="Prefeitura de Campo Verde">
+      </div>
+    </div>
+
+    <div class="top-highlight">
+      <div class="pill pill-yellow">⭐ Destaque</div>
+      <h3>Campo Verde: Capital do Algodão</h3>
+      <p>Números e infraestrutura reforçam o potencial industrial e exportador do município.</p>
+    </div>
+  </div>
+
+  <a class="btn ghost" href="https://campoverde.mt.gov.br/" target="_blank" rel="noreferrer">
+    🌐 campoverde.mt.gov.br
+  </a>
 </div>
 
-        <a class="btn ghost" href="https://campoverde.mt.gov.br/" target="_blank" rel="noreferrer">🌐 campoverde.mt.gov.br</a>
-      </div>
 
       <div class="hero-main">
         <div>
@@ -328,14 +402,6 @@
             </div>
           </div>
         </div>
-
-        <div>
-          <div class="card" style="background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18); color:#fff; box-shadow:none;">
-            <div class="pill" style="background:rgba(245,197,66,.22);border:1px solid rgba(245,197,66,.45);color:#fff;">⭐ Destaque</div>
-            <h3 style="margin:10px 0 8px;font-size:18px;font-weight:800;">Campo Verde: Capital do Algodão</h3>
-            <p style="margin:0;opacity:.95;font-size:13.8px;line-height:1.55;">
-              Números e infraestrutura reforçam o potencial industrial e exportador do município.
-            </p>
           </div>
         </div>
       </div>
