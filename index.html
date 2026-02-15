@@ -65,13 +65,26 @@
       box-shadow: 0 10px 22px rgba(0,0,0,0.18);
       overflow:hidden;
     }
-    .logo-pref img{
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      padding: 10px;
-      display:block;
-    }
+   .logo-pref{
+  width: 189px;   /* 5cm */
+  height: 227px;  /* 6cm */
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius: 18px;
+  background: transparent; /* remove “caixa” */
+  border: 0;
+  box-shadow: none;
+  overflow:hidden;
+}
+.logo-pref img{
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0; /* sem borda */
+  display:block;
+}
+
 
     .hero-title{
       margin:0;
@@ -301,24 +314,25 @@
     @media (max-width: 900px){
       .final-card{ grid-template-columns: 1fr; }
     }
-    .logo-sec{
-      width: 220px;
-      height: 96px;
-      border-radius: 14px;
-      background: #f7faf7;
-      border: 1px solid rgba(15,23,42,0.10);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      overflow:hidden;
-    }
-    .logo-sec img{
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      padding: 10px;
-      display:block;
-    }
+   .logo-sec{
+  width: 340px;  /* 9cm */
+  height: 189px; /* 5cm */
+  border-radius: 14px;
+  background: transparent;
+  border: 0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+.logo-sec img{
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0;
+  display:block;
+}
+
     .final-text h2{
       margin:0 0 6px;
       font-size: 16px;
@@ -473,8 +487,9 @@
     // =========================
     // 1) CONFIGURAÇÕES BÁSICAS
     // =========================
-    const LOGO_PREFEITURA_URL = "https://i.postimg.cc/kGD38KNr/LOGO-PREF-SVG-(1).jpg";
-    const LOGO_SECRETARIA_URL = "https://i.postimg.cc/SRjF8CLx/LOGO-PREF-SVG.jpg";
+  const LOGO_PREFEITURA_URL = "./logo-prefeitura.png";
+  const LOGO_SECRETARIA_URL = "./logo-secretaria.png";
+
 
     const SPREADSHEET_ID = "1r_mJ3kj-yEqRf5z-Lahj80EkE_nUW9bNCJS5I9_I_Zw";
     function csvUrlFromGid(gid){
@@ -492,9 +507,9 @@
         subtitle: "Indicadores do mercado de trabalho e CAGED.",
         items: [
           { title: "CAGED - Movimentação de Empregos", gid: "1787329921", size: "full", badge: "CAGED" },
-          { title: "POSTOS CAGED", gid: "1538037155", size: "half", badge: "CAGED" },
+        { title: "POSTOS CAGED", gid: "1538037155", size: "half", badge: "CAGED", chart: "stacked" },
           { title: "SALDO CAGED", gid: "1664529561", size: "half", badge: "CAGED" },
-          { title: "SETOR CAGED", gid: "667989355", size: "half", badge: "CAGED" },
+        { title: "SETOR CAGED", gid: "667989355", size: "half", badge: "CAGED", chart: "stacked" },
           { title: "ESTOQUE CAGED", gid: "183085482", size: "full", badge: "CAGED" },
         ]
       },
@@ -617,43 +632,41 @@
       return { labels, datasets };
     }
 
-    function renderChartInto(canvasId, parsed){
-      const canvas = document.getElementById(canvasId);
-      if (!canvas) return;
+  function renderChartInto(canvasId, parsed, mode){
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
 
-      const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d");
 
-      if (chartInstances.has(canvasId)){
-        chartInstances.get(canvasId).destroy();
-        chartInstances.delete(canvasId);
+  if (chartInstances.has(canvasId)){
+    chartInstances.get(canvasId).destroy();
+    chartInstances.delete(canvasId);
+  }
+
+  const isStacked = mode === "stacked";
+  const type = isStacked ? "bar" : "line";
+
+  const chart = new Chart(ctx, {
+    type,
+    data: parsed,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "top" },
+        tooltip: { mode: "index", intersect: false }
+      },
+      interaction: { mode: "index", intersect: false },
+      scales: {
+        x: { stacked: isStacked, grid: { display: false } },
+        y: { stacked: isStacked, beginAtZero: true }
       }
-
-      const chart = new Chart(ctx, {
-        type: "line",
-        data: parsed,
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { position: "top" },
-            tooltip: { mode: "index", intersect: false }
-          },
-          interaction: { mode: "index", intersect: false },
-          scales: {
-            x: { grid: { display: false } },
-            y: { beginAtZero: true }
-          }
-        }
-      });
-
-      chartInstances.set(canvasId, chart);
     }
+  });
 
-    function loadCsvToChart({ gid, canvasId, onError, onMeta }) {
-      if (!gid) {
-        onError("GID não configurado para este indicador.");
-        return;
-      }
+  chartInstances.set(canvasId, chart);
+}
+
 
       const url = csvUrlFromGid(gid);
 
@@ -666,7 +679,7 @@
           const cleaned = rows.filter(r => Object.values(r).some(v => String(v ?? "").trim() !== ""));
 
           const parsed = buildDatasets(cleaned);
-          renderChartInto(canvasId, parsed);
+          renderChartInto(canvasId, parsed, mode);
 
           // meta (maior ano numérico)
           const years = parsed.labels
