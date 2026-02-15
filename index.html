@@ -274,7 +274,7 @@
       border-radius: 14px;
       padding: 10px;
       border: 1px dashed rgba(15,23,42,0.12);
-      height: 340px;
+      height: 380px;
       position: relative;
     }
     .error{
@@ -585,20 +585,51 @@
       return Number.isFinite(n) ? n : NaN;
     }
 
-    function buildDatasets(rows){
-      if (!rows.length) return { labels: [], datasets: [] };
+   function buildDatasets(rows, { naAsZero = false } = {}){
+  if (!rows.length) return { labels: [], datasets: [] };
 
-      const keys = Object.keys(rows[0] || {}).map(normalizeKey).filter(Boolean);
-      let yearKey = keys.find(k => k.toUpperCase() === "ANO") || keys[0];
-      const valueKeys = keys.filter(k => k !== yearKey);
+  const keys = Object.keys(rows[0] || {}).map(normalizeKey).filter(Boolean);
+  let yearKey = keys.find(k => k.toUpperCase() === "ANO") || keys[0];
+  const valueKeys = keys.filter(k => k !== yearKey);
 
-      const clean = rows
-        .filter(r => r && String(r[yearKey] ?? "").trim() !== "")
-        .map(r => {
-          const out = {};
-          keys.forEach(k => out[k] = r[k]);
-          return out;
-        });
+  const clean = rows
+    .filter(r => r && String(r[yearKey] ?? "").trim() !== "")
+    .map(r => {
+      const out = {};
+      keys.forEach(k => out[k] = r[k]);
+      return out;
+    });
+
+  const labels = clean.map(r => String(r[yearKey]).trim());
+
+  const palette = ["#14532d", "#22c55e", "#0f766e", "#15803d", "#4d7c0f", "#0ea5a4"];
+
+  const datasets = valueKeys.map((k, idx) => {
+    const color = palette[idx % palette.length];
+    const data = clean.map(r => {
+      const n = toNumber(r[k]);
+      if (Number.isFinite(n)) return n;
+      return naAsZero ? 0 : NaN;
+    });
+
+    return {
+      label: k,
+      data,
+      borderColor: color,
+      backgroundColor: color,
+      pointBackgroundColor: color,
+      pointBorderColor: color,
+      borderWidth: 3,
+      tension: 0.25,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+      fill: false
+    };
+  });
+
+  return { labels, datasets };
+}
+
 
       const labels = clean.map(r => String(r[yearKey]).trim());
 
@@ -679,7 +710,8 @@
             Object.values(r).some(v => String(v ?? "").trim() !== "")
           );
 
-          const parsed = buildDatasets(cleaned);
+          const parsed = buildDatasets(cleaned, { naAsZero: mode === "stacked" });
+
           renderChartInto(canvasId, parsed, mode);
 
           // meta: maior ano numérico
@@ -716,10 +748,15 @@
               <p class="v">+55 66 3419-2416</p>
             </div>
 
-            <div class="contact-item">
-              <p class="k">💬 WhatsApp</p>
-              <p class="v">+55 66 99257-9266</p>
-            </div>
+          <div class="contact-item">
+  <p class="k">💬 WhatsApp</p>
+  <p class="v">
+    <a href="https://wa.me/5566992579266" target="_blank" rel="noreferrer">
+      +55 66 99257-9266
+    </a>
+  </p>
+</div>
+
 
             <div class="contact-item">
               <p class="k">✉️ E-mail</p>
@@ -759,7 +796,7 @@
 
       cat.items.forEach((item, idx) => {
         const card = document.createElement("article");
-        card.className = "card " + (item.size === "half" ? "half" : "");
+        card.className = "card " ;
         const canvasId = `chart_${cat.key}_${idx}`;
 
         card.innerHTML = `
