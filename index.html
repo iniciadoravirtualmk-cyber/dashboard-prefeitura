@@ -517,9 +517,9 @@
         subtitle: "Indicadores do mercado de trabalho e CAGED.",
         items: [
           { title: "CAGED - Movimentação de Empregos", gid: "1787329921", badge: "CAGED", chart: "line" },
-          { title: "POSTOS CAGED", gid: "1538037155", badge: "CAGED", chart: "stacked" },
+          { title: "POSTOS CAGED", gid: "1538037155", badge: "CAGED", chart: "bar" },
           { title: "SALDO CAGED", gid: "1664529561", badge: "CAGED", chart: "line" },
-          { title: "SETOR CAGED", gid: "667989355", badge: "CAGED", chart: "stacked" },
+          { title: "SETOR CAGED", gid: "667989355", badge: "CAGED", chart: "bar" },
           { title: "ESTOQUE CAGED", gid: "183085482", badge: "CAGED", chart: "line" },
         ],
       },
@@ -587,14 +587,34 @@
     const normalizeKey = (k) => String(k || "").trim();
 
     function toNumber(v){
-      if (v === null || v === undefined) return NaN;
-      const s = String(v).trim()
-        .replace(/\./g, "")
-        .replace(",", ".")
-        .replace(/[^\d\.\-]/g, "");
-      const n = Number(s);
-      return Number.isFinite(n) ? n : NaN;
-    }
+  if (v === null || v === undefined) return NaN;
+
+  // se já veio número, devolve direto
+  if (typeof v === "number") return Number.isFinite(v) ? v : NaN;
+
+  let s = String(v);
+
+  // remove BOM, NBSP e espaços estranhos
+  s = s.replace(/\uFEFF/g, "").replace(/\u00A0/g, " ").trim();
+
+  // troca "menos" unicode (−) pelo hífen normal (-)
+  s = s.replace(/\u2212/g, "-");
+
+  // remove símbolos (R$, %, etc) mantendo dígitos, ponto, vírgula e sinal
+  s = s.replace(/[^\d,\.\-]/g, "");
+
+  // se ficou vazio ou só "-" não é número
+  if (!s || s === "-") return NaN;
+
+  // padrão BR: 1.234,56 -> 1234.56 | 1234 -> 1234
+  // remove pontos de milhar e converte vírgula decimal
+  s = s.replace(/\.(?=\d{3}(\D|$))/g, ""); // remove só pontos de milhar
+  s = s.replace(",", ".");
+
+  const n = Number(s);
+  return Number.isFinite(n) ? n : NaN;
+}
+
 
     function buildDatasets(rows, { naAsZero = false } = {}){
       if (!rows.length) return { labels: [], datasets: [] };
@@ -616,10 +636,10 @@
       const datasets = valueKeys.map((k, idx) => {
         const color = palette[idx % palette.length];
         const data = clean.map(r => {
-          const n = toNumber(r[k]);
-          if (Number.isFinite(n)) return n;
-          return naAsZero ? 0 : NaN;
-        });
+  const n = toNumber(r[k]);
+  return Number.isFinite(n) ? n : null; // <- importante (null, não NaN)
+});
+
 
         return {
           label: k,
@@ -650,8 +670,8 @@
         chartInstances.delete(canvasId);
       }
 
-      const isStacked = mode === "stacked";
-      const type = isStacked ? "bar" : "line";
+      const isLine = mode === "line";
+const type = isLine ? "line" : "bar";
 
       const chart = new Chart(ctx, {
         type,
@@ -666,7 +686,7 @@
           interaction: { mode: "index", intersect: false },
           scales: {
             x: { stacked: isStacked, grid: { display: false } },
-            y: { stacked: isStacked, beginAtZero: true }
+            y: { stacked: isStacked, beginAtZero: false }
           }
         }
       });
