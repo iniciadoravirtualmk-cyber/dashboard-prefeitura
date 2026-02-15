@@ -422,7 +422,7 @@
           <div class="hero-meta">
             <div class="meta-pill" id="metaAtualizacao">Última atualização (ano base): —</div>
             <div class="meta-pill">📈 Indicadores Municipais</div>
-            <div class="meta-pill">🧾 Fonte: SMDE </div>
+            <div class="meta-pill">🧾 Fonte: SMDE</div>
           </div>
         </div>
       </div>
@@ -483,7 +483,7 @@
 
   <footer>
     <div class="footbox">
-      <div>© <span id="anoAtual"></span> • Observatório Econômico de Campo Verde-MT </div>
+      <div>© <span id="anoAtual"></span> • Observatório Econômico de Campo Verde-MT</div>
       <div>Desenvolvido por: Henrique Soares para navegação pública</div>
     </div>
   </footer>
@@ -501,8 +501,10 @@
     });
 
     // ========= CONFIG =========
-    const LOGO_PREFEITURA_URL = "./logo-prefeitura.svg";
-    const LOGO_SECRETARIA_URL = "./logo-secretaria.svg";
+    // Se este arquivo está em /indicadores/ e as logos estão na raiz, use "../"
+    const ASSET_BASE = "../"; // troque para "./" se os SVGs estiverem dentro de /indicadores/
+    const LOGO_PREFEITURA_URL = ASSET_BASE + "logo-prefeitura.svg";
+    const LOGO_SECRETARIA_URL = ASSET_BASE + "logo-secretaria.svg";
 
     const SPREADSHEET_ID = "1r_mJ3kj-yEqRf5z-Lahj80EkE_nUW9bNCJS5I9_I_Zw";
     function csvUrlFromGid(gid){
@@ -518,9 +520,9 @@
         subtitle: "Indicadores do mercado de trabalho e CAGED.",
         items: [
           { title: "CAGED - Movimentação de Empregos", gid: "1787329921", badge: "CAGED", chart: "line" },
-          { title: "POSTOS DE TRABALHO CAGED", gid: "1538037155", badge: "CAGED", chart: "bar" },   // barras
+          { title: "POSTOS DE TRABALHO CAGED", gid: "1538037155", badge: "CAGED", chart: "bar" },
           { title: "SALDO ANUAL CAGED", gid: "1664529561", badge: "CAGED", chart: "line" },
-          { title: "TRABALHADORES POR SETORE CAGED", gid: "667989355", badge: "CAGED", chart: "bar" },    // barras
+          { title: "TRABALHADORES POR SETOR CAGED", gid: "667989355", badge: "CAGED", chart: "bar" },
           { title: "ESTOQUE TRABALHADORES CAGED", gid: "183085482", badge: "CAGED", chart: "line" },
         ],
       },
@@ -562,22 +564,25 @@
     ];
 
     // ========= UI =========
-  <script>
-  // ========= CONFIG =========
-  // ⚠️ Ajuste o caminho conforme onde estão os SVGs:
-  // Se este arquivo estiver em /indicadores/ e os SVGs na raiz, use "../"
-  const LOGO_PREFEITURA_URL = "../logo-prefeitura.svg";
-  const LOGO_SECRETARIA_URL = "../logo-secretaria.svg";
+    function applyLogos(){
+      const pref = document.getElementById("logoPrefeitura");
+      const sec  = document.getElementById("logoSecretaria");
+      if (pref) pref.src = LOGO_PREFEITURA_URL;
+      if (sec)  sec.src  = LOGO_SECRETARIA_URL;
+    }
 
-  function applyLogos(){
-    const pref = document.getElementById("logoPrefeitura");
-    const sec  = document.getElementById("logoSecretaria");
-
-    if (pref) pref.src = LOGO_PREFEITURA_URL;
-    if (sec)  sec.src  = LOGO_SECRETARIA_URL;
-  }
-</script>
-
+    function renderTabs(activeKey){
+      const tabs = document.getElementById("tabs");
+      if (!tabs) return;
+      tabs.innerHTML = "";
+      SITE.forEach(cat => {
+        const btn = document.createElement("button");
+        btn.className = "tab" + (cat.key === activeKey ? " active" : "");
+        btn.textContent = cat.label;
+        btn.onclick = () => location.hash = `#${cat.key}`;
+        tabs.appendChild(btn);
+      });
+    }
 
     // ========= DATA / PARSING =========
     const chartInstances = new Map();
@@ -589,21 +594,18 @@
       return String(k || "").replace(/\uFEFF/g,"").replace(/\u00A0/g," ").trim();
     }
 
-    // Conversão robusta (pega NBSP, BOM, "−", milhar/decimal BR)
     function toNumber(v){
       if (v === null || v === undefined) return NaN;
       if (typeof v === "number") return Number.isFinite(v) ? v : NaN;
 
       let s = String(v);
-      s = s.replace(/\uFEFF/g, "").replace(/\u00A0/g, " ").trim(); // BOM + NBSP
-      s = s.replace(/\u2212/g, "-"); // menos unicode
-      s = s.replace(/[^\d,\.\-]/g, ""); // remove símbolos mantendo dígitos e separadores
+      s = s.replace(/\uFEFF/g, "").replace(/\u00A0/g, " ").trim();
+      s = s.replace(/\u2212/g, "-");
+      s = s.replace(/[^\d,\.\-]/g, "");
 
       if (!s || s === "-") return NaN;
 
-      // remove pontos de milhar (ex.: 1.234,56 -> 1234,56)
       s = s.replace(/\.(?=\d{3}(\D|$))/g, "");
-      // vírgula decimal -> ponto
       s = s.replace(",", ".");
 
       const n = Number(s);
@@ -613,25 +615,21 @@
     function buildDatasets(rows){
       if (!rows.length) return { labels: [], datasets: [] };
 
-      // keys do primeiro row
       const rawKeys = Object.keys(rows[0] || {});
       const keys = rawKeys.map(normalizeKey).filter(Boolean);
 
-      // Mapear para acessar valores usando o key original (porque Papa usa keys originais)
-      // Criamos um "dicionário" normalizeKey(original) -> original
       const normToOriginal = {};
       rawKeys.forEach(orig => {
         const norm = normalizeKey(orig);
         if (norm && !normToOriginal[norm]) normToOriginal[norm] = orig;
       });
 
-      let yearKeyNorm = keys.find(k => k.toUpperCase() === "ANO") || keys[0];
+      const yearKeyNorm = keys.find(k => k.toUpperCase() === "ANO") || keys[0];
       const yearKeyOrig = normToOriginal[yearKeyNorm] || rawKeys[0];
 
       const valueKeyNorms = keys.filter(k => k !== yearKeyNorm);
       const valueKeyOrigs = valueKeyNorms.map(k => normToOriginal[k]).filter(Boolean);
 
-      // limpar linhas com ano vazio
       const clean = rows.filter(r => {
         const y = r?.[yearKeyOrig];
         return String(y ?? "").replace(/\u00A0/g," ").trim() !== "";
@@ -645,7 +643,7 @@
 
         const data = clean.map(r => {
           const n = toNumber(r[origKey]);
-          return Number.isFinite(n) ? n : null; // null é melhor pro Chart.js do que NaN
+          return Number.isFinite(n) ? n : null;
         });
 
         return {
@@ -680,8 +678,7 @@
 
       const type = (mode === "line") ? "line" : "bar";
 
-      // ajustes diferentes p/ linha vs barra
-      const common = {
+      const options = {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
@@ -691,11 +688,10 @@
         interaction: { mode: "index", intersect: false },
         scales: {
           x: { grid: { display: false } },
-          y: { beginAtZero: false } // permite negativos/valores naturais
+          y: { beginAtZero: false }
         }
       };
 
-      // barras ficam mais legíveis com borda menor
       if (type === "bar") {
         parsed.datasets = parsed.datasets.map(ds => ({
           ...ds,
@@ -703,11 +699,11 @@
         }));
       }
 
-      const chart = new Chart(ctx, { type, data: parsed, options: common });
+      const chart = new Chart(ctx, { type, data: parsed, options });
       chartInstances.set(canvasId, chart);
     }
 
-    // ========= CSV LOADER (UTF-8 safe) =========
+    // ========= CSV LOADER =========
     function loadCsvToChart({ gid, canvasId, mode, onError, onMeta }){
       if (!gid){
         onError("GID não configurado para este indicador.");
@@ -717,7 +713,10 @@
       const url = csvUrlFromGid(gid);
 
       fetch(url)
-        .then(res => res.text())
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.text();
+        })
         .then(text => {
           const parsedCsv = Papa.parse(text, { header: true, skipEmptyLines: true });
 
@@ -729,16 +728,13 @@
           const parsed = buildDatasets(cleaned);
           renderChartInto(canvasId, parsed, mode);
 
-          // meta = maior ano numérico
           const years = parsed.labels
             .map(x => Number(String(x).trim()))
             .filter(n => Number.isFinite(n));
 
           if (years.length && onMeta) onMeta(Math.max(...years));
         })
-        .catch(err => {
-          onError("Erro ao baixar CSV: " + (err?.message || String(err)));
-        });
+        .catch(err => onError("Erro ao baixar/ler CSV: " + (err?.message || String(err))));
     }
 
     // ========= PAGES =========
@@ -855,14 +851,11 @@
 
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("anoAtual").textContent = String(new Date().getFullYear());
-
       applyLogos();
       renderCategory(getHashKey());
-
-      window.addEventListener("hashchange", () => {
-        renderCategory(getHashKey());
-      });
+      window.addEventListener("hashchange", () => renderCategory(getHashKey()));
     });
   </script>
 </body>
 </html>
+
