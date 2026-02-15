@@ -562,24 +562,22 @@
     ];
 
     // ========= UI =========
-    function applyLogos(){
-     const LOGO_PREFEITURA_URL = "./logo-prefeitura.svg";
-    const LOGO_SECRETARIA_URL = "./logo-secretaria.svg";
-      if (pref) pref.src = LOGO_PREFEITURA_URL;
-      if (sec) sec.src = LOGO_SECRETARIA_URL;
-    }
+  <script>
+  // ========= CONFIG =========
+  // ⚠️ Ajuste o caminho conforme onde estão os SVGs:
+  // Se este arquivo estiver em /indicadores/ e os SVGs na raiz, use "../"
+  const LOGO_PREFEITURA_URL = "../logo-prefeitura.svg";
+  const LOGO_SECRETARIA_URL = "../logo-secretaria.svg";
 
-    function renderTabs(activeKey){
-      const tabs = document.getElementById("tabs");
-      tabs.innerHTML = "";
-      SITE.forEach(cat => {
-        const btn = document.createElement("button");
-        btn.className = "tab" + (cat.key === activeKey ? " active" : "");
-        btn.textContent = cat.label;
-        btn.onclick = () => location.hash = `#${cat.key}`;
-        tabs.appendChild(btn);
-      });
-    }
+  function applyLogos(){
+    const pref = document.getElementById("logoPrefeitura");
+    const sec  = document.getElementById("logoSecretaria");
+
+    if (pref) pref.src = LOGO_PREFEITURA_URL;
+    if (sec)  sec.src  = LOGO_SECRETARIA_URL;
+  }
+</script>
+
 
     // ========= DATA / PARSING =========
     const chartInstances = new Map();
