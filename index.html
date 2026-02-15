@@ -16,6 +16,7 @@
   <style>
     :root{
       --verde-escuro:#1f6f3d;
+      --verde-escuro-2:#185c32;
       --verde-claro:#a4c639;
       --cinza-fundo:#f4f6f8;
       --branco:#ffffff;
@@ -35,7 +36,7 @@
       color: var(--texto);
     }
 
-    /* Debug box (aparece se der erro JS) */
+    /* Debug error (aparece se houver erro JS fatal) */
     .debug-box{
       max-width: var(--maxw);
       margin: 12px auto 0;
@@ -50,9 +51,9 @@
       white-space: pre-wrap;
     }
 
-    /* HERO HEADER */
+    /* HERO */
     .topbar{
-      background: linear-gradient(180deg, #1f6f3d, #185c32);
+      background: linear-gradient(180deg, var(--verde-escuro), var(--verde-escuro-2));
       color: var(--branco);
       padding: 22px 16px 18px;
     }
@@ -60,6 +61,7 @@
       max-width: var(--maxw);
       margin: 0 auto;
     }
+
     .hero-row{
       display:grid;
       grid-template-columns: 210px 1fr;
@@ -72,22 +74,20 @@
 
     /* Prefeitura ~5cm x 6cm */
     .logo-pref{
-      width: 189px;
-      height: 227px;
+      width: 199px;
+      height: 237px;
       display:flex;
       align-items:center;
       justify-content:center;
       border-radius: 16px;
       background: transparent;
       border: 0;
-      box-shadow: none;
       overflow:hidden;
     }
     .logo-pref img{
       width: 100%;
       height: 100%;
       object-fit: contain;
-      padding: 0;
       display:block;
     }
 
@@ -289,12 +289,13 @@
       position: relative;
     }
     .error{
-      padding: 12px;
+      margin-top: 8px;
+      padding: 10px 12px;
       border-radius: 12px;
       background: #fff1f2;
       border: 1px solid #fecdd3;
       color: #9f1239;
-      font-size: 13px;
+      font-size: 12.5px;
       line-height: 1.35;
       white-space: pre-wrap;
       display:none;
@@ -323,8 +324,8 @@
 
     /* Secretaria ~5cm x 9cm */
     .logo-sec{
-      width: 340px;
-      height: 189px;
+      width: 350px;
+      height: 199px;
       border-radius: 14px;
       background: transparent;
       border: 0;
@@ -337,7 +338,6 @@
       width: 100%;
       height: 100%;
       object-fit: contain;
-      padding: 0;
       display:block;
     }
 
@@ -489,7 +489,7 @@
   </footer>
 
   <script>
-    // ====== Catch errors and show on screen ======
+    // ========= ERROR GUARD =========
     function showFatal(msg){
       const box = document.getElementById("debugBox");
       if (!box) return;
@@ -497,18 +497,19 @@
       box.textContent = msg;
     }
     window.addEventListener("error", (e) => {
-      showFatal("Erro JavaScript:\n" + (e?.message || e));
+      showFatal("Erro JavaScript:\n" + (e?.message || String(e)));
     });
 
-    // ===== CONFIG =====
+    // ========= CONFIG =========
     const LOGO_PREFEITURA_URL = "./logo-prefeitura.svg";
     const LOGO_SECRETARIA_URL = "./logo-secretaria.svg";
 
     const SPREADSHEET_ID = "1r_mJ3kj-yEqRf5z-Lahj80EkE_nUW9bNCJS5I9_I_Zw";
-    const csvUrlFromGid = (gid) =>
-      `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${gid}`;
+    function csvUrlFromGid(gid){
+      return `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${gid}`;
+    }
 
-    // ===== SITE MAP =====
+    // ========= SITE MAP =========
     const SITE = [
       {
         key: "empregabilidade",
@@ -517,9 +518,9 @@
         subtitle: "Indicadores do mercado de trabalho e CAGED.",
         items: [
           { title: "CAGED - Movimentação de Empregos", gid: "1787329921", badge: "CAGED", chart: "line" },
-          { title: "POSTOS CAGED", gid: "1538037155", badge: "CAGED", chart: "bar" },
+          { title: "POSTOS CAGED", gid: "1538037155", badge: "CAGED", chart: "bar" },   // barras
           { title: "SALDO CAGED", gid: "1664529561", badge: "CAGED", chart: "line" },
-          { title: "SETOR CAGED", gid: "667989355", badge: "CAGED", chart: "bar" },
+          { title: "SETOR CAGED", gid: "667989355", badge: "CAGED", chart: "bar" },    // barras
           { title: "ESTOQUE CAGED", gid: "183085482", badge: "CAGED", chart: "line" },
         ],
       },
@@ -560,7 +561,7 @@
       },
     ];
 
-    // ===== UI =====
+    // ========= UI =========
     function applyLogos(){
       const pref = document.getElementById("logoPrefeitura");
       const sec  = document.getElementById("logoSecretaria");
@@ -580,69 +581,77 @@
       });
     }
 
-    // ===== CHART =====
+    // ========= DATA / PARSING =========
     const chartInstances = new Map();
-    const palette = ["#14532d", "#22c55e", "#0f766e", "#15803d", "#4d7c0f", "#0ea5a4"];
 
-    const normalizeKey = (k) => String(k || "").trim();
+    // Paleta sem vermelho
+    const palette = ["#14532d", "#22c55e", "#0f766e", "#15803d", "#4d7c0f", "#0ea5a4", "#166534"];
 
+    function normalizeKey(k){
+      return String(k || "").replace(/\uFEFF/g,"").replace(/\u00A0/g," ").trim();
+    }
+
+    // Conversão robusta (pega NBSP, BOM, "−", milhar/decimal BR)
     function toNumber(v){
-  if (v === null || v === undefined) return NaN;
+      if (v === null || v === undefined) return NaN;
+      if (typeof v === "number") return Number.isFinite(v) ? v : NaN;
 
-  // se já veio número, devolve direto
-  if (typeof v === "number") return Number.isFinite(v) ? v : NaN;
+      let s = String(v);
+      s = s.replace(/\uFEFF/g, "").replace(/\u00A0/g, " ").trim(); // BOM + NBSP
+      s = s.replace(/\u2212/g, "-"); // menos unicode
+      s = s.replace(/[^\d,\.\-]/g, ""); // remove símbolos mantendo dígitos e separadores
 
-  let s = String(v);
+      if (!s || s === "-") return NaN;
 
-  // remove BOM, NBSP e espaços estranhos
-  s = s.replace(/\uFEFF/g, "").replace(/\u00A0/g, " ").trim();
+      // remove pontos de milhar (ex.: 1.234,56 -> 1234,56)
+      s = s.replace(/\.(?=\d{3}(\D|$))/g, "");
+      // vírgula decimal -> ponto
+      s = s.replace(",", ".");
 
-  // troca "menos" unicode (−) pelo hífen normal (-)
-  s = s.replace(/\u2212/g, "-");
+      const n = Number(s);
+      return Number.isFinite(n) ? n : NaN;
+    }
 
-  // remove símbolos (R$, %, etc) mantendo dígitos, ponto, vírgula e sinal
-  s = s.replace(/[^\d,\.\-]/g, "");
-
-  // se ficou vazio ou só "-" não é número
-  if (!s || s === "-") return NaN;
-
-  // padrão BR: 1.234,56 -> 1234.56 | 1234 -> 1234
-  // remove pontos de milhar e converte vírgula decimal
-  s = s.replace(/\.(?=\d{3}(\D|$))/g, ""); // remove só pontos de milhar
-  s = s.replace(",", ".");
-
-  const n = Number(s);
-  return Number.isFinite(n) ? n : NaN;
-}
-
-
-    function buildDatasets(rows, { naAsZero = false } = {}){
+    function buildDatasets(rows){
       if (!rows.length) return { labels: [], datasets: [] };
 
-      const keys = Object.keys(rows[0] || {}).map(normalizeKey).filter(Boolean);
-      const yearKey = keys.find(k => k.toUpperCase() === "ANO") || keys[0];
-      const valueKeys = keys.filter(k => k !== yearKey);
+      // keys do primeiro row
+      const rawKeys = Object.keys(rows[0] || {});
+      const keys = rawKeys.map(normalizeKey).filter(Boolean);
 
-      const clean = rows
-        .filter(r => r && String(r[yearKey] ?? "").trim() !== "")
-        .map(r => {
-          const out = {};
-          keys.forEach(k => out[k] = r[k]);
-          return out;
+      // Mapear para acessar valores usando o key original (porque Papa usa keys originais)
+      // Criamos um "dicionário" normalizeKey(original) -> original
+      const normToOriginal = {};
+      rawKeys.forEach(orig => {
+        const norm = normalizeKey(orig);
+        if (norm && !normToOriginal[norm]) normToOriginal[norm] = orig;
+      });
+
+      let yearKeyNorm = keys.find(k => k.toUpperCase() === "ANO") || keys[0];
+      const yearKeyOrig = normToOriginal[yearKeyNorm] || rawKeys[0];
+
+      const valueKeyNorms = keys.filter(k => k !== yearKeyNorm);
+      const valueKeyOrigs = valueKeyNorms.map(k => normToOriginal[k]).filter(Boolean);
+
+      // limpar linhas com ano vazio
+      const clean = rows.filter(r => {
+        const y = r?.[yearKeyOrig];
+        return String(y ?? "").replace(/\u00A0/g," ").trim() !== "";
+      });
+
+      const labels = clean.map(r => String(r[yearKeyOrig]).replace(/\u00A0/g," ").trim());
+
+      const datasets = valueKeyOrigs.map((origKey, idx) => {
+        const labelNorm = valueKeyNorms[idx] || normalizeKey(origKey);
+        const color = palette[idx % palette.length];
+
+        const data = clean.map(r => {
+          const n = toNumber(r[origKey]);
+          return Number.isFinite(n) ? n : null; // null é melhor pro Chart.js do que NaN
         });
 
-      const labels = clean.map(r => String(r[yearKey]).trim());
-
-      const datasets = valueKeys.map((k, idx) => {
-        const color = palette[idx % palette.length];
-        const data = clean.map(r => {
-  const n = toNumber(r[k]);
-  return Number.isFinite(n) ? n : null; // <- importante (null, não NaN)
-});
-
-
         return {
-          label: k,
+          label: labelNorm,
           data,
           borderColor: color,
           backgroundColor: color,
@@ -659,6 +668,7 @@
       return { labels, datasets };
     }
 
+    // ========= CHART RENDER =========
     function renderChartInto(canvasId, parsed, mode){
       const canvas = document.getElementById(canvasId);
       if (!canvas) return;
@@ -670,70 +680,70 @@
         chartInstances.delete(canvasId);
       }
 
-      const isLine = mode === "line";
-const type = isLine ? "line" : "bar";
+      const type = (mode === "line") ? "line" : "bar";
 
-      const chart = new Chart(ctx, {
-        type,
-        data: parsed,
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { position: "top" },
-            tooltip: { mode: "index", intersect: false }
-          },
-          interaction: { mode: "index", intersect: false },
-          scales: {
-            x: { stacked: isStacked, grid: { display: false } },
-            y: { stacked: isStacked, beginAtZero: false }
-          }
+      // ajustes diferentes p/ linha vs barra
+      const common = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "top" },
+          tooltip: { mode: "index", intersect: false }
+        },
+        interaction: { mode: "index", intersect: false },
+        scales: {
+          x: { grid: { display: false } },
+          y: { beginAtZero: false } // permite negativos/valores naturais
         }
-      });
+      };
 
+      // barras ficam mais legíveis com borda menor
+      if (type === "bar") {
+        parsed.datasets = parsed.datasets.map(ds => ({
+          ...ds,
+          borderWidth: 1,
+        }));
+      }
+
+      const chart = new Chart(ctx, { type, data: parsed, options: common });
       chartInstances.set(canvasId, chart);
     }
 
-    function loadCsvToChart({ gid, canvasId, mode, onError, onMeta }) {
-  if (!gid) {
-    onError("GID não configurado.");
-    return;
-  }
-
-  const url = csvUrlFromGid(gid);
-
-  fetch(url)
-    .then(response => response.text())
-    .then(text => {
-      // 🔥 força interpretação correta UTF-8
-      const parsedCsv = Papa.parse(text, {
-        header: true,
-        skipEmptyLines: true
-      });
-
-      const rows = (parsedCsv.data || []).filter(Boolean);
-      const cleaned = rows.filter(r =>
-        Object.values(r).some(v => String(v ?? "").trim() !== "")
-      );
-
-      const parsed = buildDatasets(cleaned, { naAsZero: mode === "stacked" });
-
-      renderChartInto(canvasId, parsed, mode);
-
-      const years = parsed.labels
-        .map(x => Number(String(x).trim()))
-        .filter(n => Number.isFinite(n));
-
-      if (years.length && onMeta) {
-        onMeta(Math.max(...years));
+    // ========= CSV LOADER (UTF-8 safe) =========
+    function loadCsvToChart({ gid, canvasId, mode, onError, onMeta }){
+      if (!gid){
+        onError("GID não configurado para este indicador.");
+        return;
       }
-    })
-    .catch(err => {
-      onError("Erro ao baixar CSV: " + err.message);
-    });
-}
 
-    // ===== PAGES =====
+      const url = csvUrlFromGid(gid);
+
+      fetch(url)
+        .then(res => res.text())
+        .then(text => {
+          const parsedCsv = Papa.parse(text, { header: true, skipEmptyLines: true });
+
+          const rows = (parsedCsv.data || []).filter(Boolean);
+          const cleaned = rows.filter(r =>
+            Object.values(r).some(v => String(v ?? "").replace(/\u00A0/g," ").trim() !== "")
+          );
+
+          const parsed = buildDatasets(cleaned);
+          renderChartInto(canvasId, parsed, mode);
+
+          // meta = maior ano numérico
+          const years = parsed.labels
+            .map(x => Number(String(x).trim()))
+            .filter(n => Number.isFinite(n));
+
+          if (years.length && onMeta) onMeta(Math.max(...years));
+        })
+        .catch(err => {
+          onError("Erro ao baixar CSV: " + (err?.message || String(err)));
+        });
+    }
+
+    // ========= PAGES =========
     function renderContato(){
       const grid = document.getElementById("grid");
       grid.innerHTML = `
@@ -798,6 +808,7 @@ const type = isLine ? "line" : "bar";
 
       let maxYear = null;
       const metaEl = document.getElementById("metaAtualizacao");
+      metaEl.textContent = "Última atualização (ano base): —";
 
       cat.items.forEach((item, idx) => {
         const canvasId = `chart_${cat.key}_${idx}`;
@@ -838,7 +849,7 @@ const type = isLine ? "line" : "bar";
       });
     }
 
-    // ===== INIT (safe) =====
+    // ========= INIT =========
     function getHashKey(){
       const k = (location.hash || "").replace("#","").trim();
       return k || SITE[0].key;
@@ -846,10 +857,15 @@ const type = isLine ? "line" : "bar";
 
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("anoAtual").textContent = String(new Date().getFullYear());
+
       applyLogos();
       renderCategory(getHashKey());
-      window.addEventListener("hashchange", () => renderCategory(getHashKey()));
+
+      window.addEventListener("hashchange", () => {
+        renderCategory(getHashKey());
+      });
     });
   </script>
 </body>
 </html>
+
