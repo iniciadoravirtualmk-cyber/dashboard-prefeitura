@@ -35,6 +35,21 @@
       color: var(--texto);
     }
 
+    /* Debug box (aparece se der erro JS) */
+    .debug-box{
+      max-width: var(--maxw);
+      margin: 12px auto 0;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #fff1f2;
+      border: 1px solid #fecdd3;
+      color: #9f1239;
+      font-size: 13px;
+      line-height: 1.35;
+      display:none;
+      white-space: pre-wrap;
+    }
+
     /* HERO HEADER */
     .topbar{
       background: linear-gradient(180deg, #1f6f3d, #185c32);
@@ -45,7 +60,6 @@
       max-width: var(--maxw);
       margin: 0 auto;
     }
-
     .hero-row{
       display:grid;
       grid-template-columns: 210px 1fr;
@@ -283,6 +297,7 @@
       font-size: 13px;
       line-height: 1.35;
       white-space: pre-wrap;
+      display:none;
     }
 
     /* FINAL SECTION */
@@ -438,6 +453,8 @@
     </div>
   </nav>
 
+  <div class="debug-box" id="debugBox"></div>
+
   <main>
     <div class="header-row">
       <div>
@@ -472,6 +489,17 @@
   </footer>
 
   <script>
+    // ====== Catch errors and show on screen ======
+    function showFatal(msg){
+      const box = document.getElementById("debugBox");
+      if (!box) return;
+      box.style.display = "block";
+      box.textContent = msg;
+    }
+    window.addEventListener("error", (e) => {
+      showFatal("Erro JavaScript:\n" + (e?.message || e));
+    });
+
     // ===== CONFIG =====
     const LOGO_PREFEITURA_URL = "./logo-prefeitura.svg";
     const LOGO_SECRETARIA_URL = "./logo-secretaria.svg";
@@ -611,77 +639,69 @@
       return { labels, datasets };
     }
 
-    function renderChartInto(canvasId, parsed, mode) {
+    function renderChartInto(canvasId, parsed, mode){
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
 
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
+      const ctx = canvas.getContext("2d");
 
-  const ctx = canvas.getContext("2d");
-
-  if (chartInstances.has(canvasId)){
-    chartInstances.get(canvasId).destroy();
-    chartInstances.delete(canvasId);
-  }
-
-  const isStacked = mode === "stacked";
-
-  const chart = new Chart(ctx, {
-    type: isStacked ? "bar" : "line",
-    data: parsed,
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: "top" }
-      },
-      scales: {
-        x: { stacked: isStacked },
-        y: { stacked: isStacked, beginAtZero: true }
+      if (chartInstances.has(canvasId)){
+        chartInstances.get(canvasId).destroy();
+        chartInstances.delete(canvasId);
       }
+
+      const isStacked = mode === "stacked";
+      const type = isStacked ? "bar" : "line";
+
+      const chart = new Chart(ctx, {
+        type,
+        data: parsed,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "top" },
+            tooltip: { mode: "index", intersect: false }
+          },
+          interaction: { mode: "index", intersect: false },
+          scales: {
+            x: { stacked: isStacked, grid: { display: false } },
+            y: { stacked: isStacked, beginAtZero: true }
+          }
+        }
+      });
+
+      chartInstances.set(canvasId, chart);
     }
-  });
 
-  chartInstances.set(canvasId, chart);
-}
-  loadCsvToChart({
-  gid: item.gid,
-  canvasId,
-  mode: item.chart === "stacked" ? "stacked" : "line",
-  onError: showErr,
-  onMeta: (year) => {
-
-
-  const url = csvUrlFromGid(gid);
-
-  Papa.parse(url, {
-    download: true,
-    header: true,
-    skipEmptyLines: true,
-    complete: (results) => {
-
-      const rows = (results.data || []).filter(Boolean);
-
-      const cleaned = rows.filter(r =>
-        Object.values(r).some(v => String(v ?? "").trim() !== "")
-      );
-
-      const parsed = buildDatasets(cleaned);
-
-      renderChartInto(canvasId, parsed, mode);
-
-      const years = parsed.labels
-        .map(x => Number(String(x).trim()))
-        .filter(n => Number.isFinite(n));
-
-      if (years.length && onMeta) {
-        onMeta(Math.max(...years));
+    function loadCsvToChart({ gid, canvasId, mode, onError, onMeta }){
+      if (!gid) {
+        onError("GID não configurado para este indicador.");
+        return;
       }
-    },
-    error: (err) =>
-      onError("Erro ao baixar CSV: " + (err?.message || String(err)))
-  });
-}
 
+      Papa.parse(csvUrlFromGid(gid), {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          const rows = (results.data || []).filter(Boolean);
+          const cleaned = rows.filter(r =>
+            Object.values(r).some(v => String(v ?? "").trim() !== "")
+          );
+
+          const parsed = buildDatasets(cleaned, { naAsZero: mode === "stacked" });
+          renderChartInto(canvasId, parsed, mode);
+
+          const years = parsed.labels
+            .map(x => Number(String(x).trim()))
+            .filter(n => Number.isFinite(n));
+
+          if (years.length && onMeta) onMeta(Math.max(...years));
+        },
+        error: (err) => onError("Erro ao baixar/ler CSV: " + (err?.message || String(err)))
+      });
+    }
 
     // ===== PAGES =====
     function renderContato(){
@@ -759,9 +779,10 @@
             <div><h3 class="card-title">${item.title}</h3></div>
             <div class="badge">${item.badge || "INDICADOR"}</div>
           </div>
+
           <div class="canvas-wrap">
             <canvas id="${canvasId}"></canvas>
-            <div id="${canvasId}_err" class="error" style="display:none;"></div>
+            <div id="${canvasId}_err" class="error"></div>
           </div>
         `;
         grid.appendChild(card);
@@ -787,17 +808,18 @@
       });
     }
 
-    // ===== INIT =====
+    // ===== INIT (safe) =====
     function getHashKey(){
       const k = (location.hash || "").replace("#","").trim();
       return k || SITE[0].key;
     }
 
-    window.addEventListener("hashchange", () => renderCategory(getHashKey()));
-    document.getElementById("anoAtual").textContent = String(new Date().getFullYear());
-
-    applyLogos();
-    renderCategory(getHashKey());
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("anoAtual").textContent = String(new Date().getFullYear());
+      applyLogos();
+      renderCategory(getHashKey());
+      window.addEventListener("hashchange", () => renderCategory(getHashKey()));
+    });
   </script>
 </body>
 </html>
