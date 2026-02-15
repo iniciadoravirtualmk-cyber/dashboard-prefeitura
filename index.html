@@ -188,13 +188,14 @@
     .hero-ctas{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
 
     /* ✅ Cards mais retangulares + título/emoji em 1 linha */
-   .hero-cards{
+  .hero-cards{
   margin-top:18px;
   display:grid;
-  grid-template-columns: repeat(3, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap:14px;
   align-items: stretch;
 }
+
 
 @media (max-width: 980px){
   .hero-cards{ grid-template-columns: repeat(2, minmax(260px, 1fr)); }
@@ -203,14 +204,24 @@
   .hero-cards{ grid-template-columns: 1fr; }
 }
 
-  .miniCard .t{
+.miniCard .t{
   margin:0 0 6px;
   font-weight:800;
   font-size:16px;
   display:flex;
   gap:8px;
   align-items:center;
-  white-space: nowrap; /* mantém em 1 linha */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.miniCard{
+  padding: 18px 18px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.16);
+  box-shadow: 0 10px 20px rgba(0,0,0,.14);
 }
 
     .miniCard .d{margin:0;font-size:13.8px;opacity:.95;line-height:1.45}
@@ -402,10 +413,8 @@
             </div>
           </div>
         </div>
-          </div>
-        </div>
       </div>
-    </div>
+
   </header>
 
   <!-- CTA STRIP -->
