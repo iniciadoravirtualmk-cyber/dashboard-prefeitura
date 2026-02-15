@@ -674,34 +674,44 @@
       chartInstances.set(canvasId, chart);
     }
 
-    function loadCsvToChart({ gid, canvasId, mode, onError, onMeta }){
-      if (!gid) {
-        onError("GID não configurado para este indicador.");
-        return;
-      }
+    function loadCsvToChart({ gid, canvasId, mode, onError, onMeta }) {
+  if (!gid) {
+    onError("GID não configurado.");
+    return;
+  }
 
-      Papa.parse(csvUrlFromGid(gid), {
-        download: true,
+  const url = csvUrlFromGid(gid);
+
+  fetch(url)
+    .then(response => response.text())
+    .then(text => {
+      // 🔥 força interpretação correta UTF-8
+      const parsedCsv = Papa.parse(text, {
         header: true,
-        skipEmptyLines: true,
-        complete: (results) => {
-          const rows = (results.data || []).filter(Boolean);
-          const cleaned = rows.filter(r =>
-            Object.values(r).some(v => String(v ?? "").trim() !== "")
-          );
-
-          const parsed = buildDatasets(cleaned, { naAsZero: mode === "stacked" });
-          renderChartInto(canvasId, parsed, mode);
-
-          const years = parsed.labels
-            .map(x => Number(String(x).trim()))
-            .filter(n => Number.isFinite(n));
-
-          if (years.length && onMeta) onMeta(Math.max(...years));
-        },
-        error: (err) => onError("Erro ao baixar/ler CSV: " + (err?.message || String(err)))
+        skipEmptyLines: true
       });
-    }
+
+      const rows = (parsedCsv.data || []).filter(Boolean);
+      const cleaned = rows.filter(r =>
+        Object.values(r).some(v => String(v ?? "").trim() !== "")
+      );
+
+      const parsed = buildDatasets(cleaned, { naAsZero: mode === "stacked" });
+
+      renderChartInto(canvasId, parsed, mode);
+
+      const years = parsed.labels
+        .map(x => Number(String(x).trim()))
+        .filter(n => Number.isFinite(n));
+
+      if (years.length && onMeta) {
+        onMeta(Math.max(...years));
+      }
+    })
+    .catch(err => {
+      onError("Erro ao baixar CSV: " + err.message);
+    });
+}
 
     // ===== PAGES =====
     function renderContato(){
