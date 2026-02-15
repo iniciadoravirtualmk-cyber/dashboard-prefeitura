@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Observatório Econômico - Campo Verde</title>
+
+  <!-- Open Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    :root{
+      --verde-escuro:#1f6f3d;
+      --verde-escuro-2:#185c32;
+      --verde-claro:#a4c639;
+      --cinza-fundo:#f4f6f8;
+      --branco:#ffffff;
+      --texto:#0f172a;
+      --muted:#64748b;
+      --borda:#e5e7eb;
+      --sombra: 0 10px 28px rgba(2, 6, 23, 0.10);
+      --radius:16px;
+      --maxw: 1180px;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: "Open Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--cinza-fundo);
+      color: var(--texto);
+    }
+
+    /* Debug error (aparece se houver erro JS fatal) */
+    .debug-box{
+      max-width: var(--maxw);
+      margin: 12px auto 0;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #fff1f2;
+      border: 1px solid #fecdd3;
+      color: #9f1239;
+      font-size: 13px;
+      line-height: 1.35;
+      display:none;
+      white-space: pre-wrap;
+    }
+
+    /* HERO */
+    .topbar{
+      background: linear-gradient(180deg, var(--verde-escuro), var(--verde-escuro-2));
+      color: var(--branco);
+      padding: 22px 16px 18px;
+    }
+    .topbar-inner{
+      max-width: var(--maxw);
+      margin: 0 auto;
+    }
+
+    .hero-row{
+      display:grid;
+      grid-template-columns: 210px 1fr;
+      gap: 18px;
+      align-items:center;
+    }
+    @media (max-width: 820px){
+      .hero-row{ grid-template-columns: 1fr; }
+    }
+
+    /* Prefeitura ~5cm x 6cm */
+    .logo-pref{
+      width: 199px;
+      height: 237px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius: 16px;
+      background: transparent;
+      border: 0;
+      overflow:hidden;
+    }
+    .logo-pref img{
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display:block;
+    }
+
+    .hero-title{
+      margin:0;
+      font-size: 40px;
+      line-height: 1.05;
+      letter-spacing: .2px;
+      font-weight: 800;
+    }
+    .hero-subtitle{
+      margin: 6px 0 0;
+      font-size: 18px;
+      opacity: .95;
+      font-weight: 700;
+    }
+    .hero-text{
+      margin: 12px 0 0;
+      font-size: 15px;
+      line-height: 1.55;
+      opacity: .95;
+      max-width: 980px;
+    }
+
+    .hero-meta{
+      margin-top: 12px;
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items:center;
+      justify-content: space-between;
+    }
+    .meta-pill{
+      display:inline-flex;
+      align-items:center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.18);
+      font-size: 12.5px;
+      white-space: nowrap;
+      font-weight: 700;
+    }
+
+    .hero-cards{
+      margin-top: 16px;
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    @media (max-width: 900px){
+      .hero-cards{ grid-template-columns: 1fr; }
+    }
+    .hero-card{
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: var(--radius);
+      padding: 14px 14px;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.14);
+    }
+    .hero-card .t{
+      margin:0 0 6px;
+      font-weight: 800;
+      letter-spacing:.2px;
+      font-size: 17px;
+      display:flex;
+      gap: 8px;
+      align-items:center;
+    }
+    .hero-card .d{
+      margin:0;
+      font-size: 14.5px;
+      opacity: .95;
+      line-height:1.45;
+    }
+
+    /* NAV */
+    .nav{
+      background: var(--verde-claro);
+      padding: 12px 16px;
+      border-bottom: 3px solid rgba(0,0,0,0.06);
+    }
+    .nav-inner{
+      max-width: var(--maxw);
+      margin: 0 auto;
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items:center;
+      justify-content: space-between;
+    }
+    .tabs{
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .tab{
+      appearance:none;
+      border: 0;
+      cursor:pointer;
+      background: rgba(255,255,255,0.60);
+      color: #0b2a16;
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-weight: 800;
+      transition: .15s ease;
+      font-size: 14px;
+    }
+    .tab:hover{ transform: translateY(-1px); }
+    .tab.active{
+      background: var(--verde-escuro);
+      color: var(--branco);
+    }
+
+    .nav-hint{
+      max-width: var(--maxw);
+      margin: 10px auto 0;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.58);
+      border: 1px solid rgba(15,23,42,0.10);
+      color: #0b2a16;
+      font-size: 13.5px;
+      font-weight: 700;
+    }
+
+    /* CONTENT */
+    main{
+      max-width: var(--maxw);
+      margin: 0 auto;
+      padding: 18px 16px 26px;
+    }
+    .header-row{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    h1{
+      margin: 10px 0 4px;
+      font-size: 28px;
+      letter-spacing: .2px;
+      font-weight: 800;
+    }
+    .subtitle{
+      color: var(--muted);
+      font-size: 13.5px;
+      margin: 0 0 6px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 14px;
+    }
+    .card{
+      grid-column: span 12;
+      background: var(--branco);
+      border: 1px solid var(--borda);
+      border-radius: var(--radius);
+      box-shadow: var(--sombra);
+      padding: 14px;
+      overflow:hidden;
+    }
+
+    .card-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .card-title{
+      margin:0;
+      font-size: 16px;
+      font-weight: 800;
+    }
+    .badge{
+      font-size: 11px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(46,139,87,0.12);
+      border: 1px solid rgba(46,139,87,0.25);
+      color: #14532d;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    /* TODOS os gráficos mesmo tamanho */
+    .canvas-wrap{
+      background: linear-gradient(180deg, rgba(244,246,248,0.65), rgba(244,246,248,0));
+      border-radius: 14px;
+      padding: 10px;
+      border: 1px dashed rgba(15,23,42,0.12);
+      height: 390px;
+      position: relative;
+    }
+    .error{
+      margin-top: 8px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #fff1f2;
+      border: 1px solid #fecdd3;
+      color: #9f1239;
+      font-size: 12.5px;
+      line-height: 1.35;
+      white-space: pre-wrap;
+      display:none;
+    }
+
+    /* FINAL SECTION */
+    .final{
+      max-width: var(--maxw);
+      margin: 0 auto;
+      padding: 10px 16px 22px;
+    }
+    .final-card{
+      background: var(--branco);
+      border: 1px solid rgba(15,23,42,0.10);
+      border-radius: var(--radius);
+      box-shadow: var(--sombra);
+      padding: 16px;
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap: 16px;
+      align-items:center;
+    }
+    @media (max-width: 900px){
+      .final-card{ grid-template-columns: 1fr; }
+    }
+
+    /* Secretaria ~5cm x 9cm */
+    .logo-sec{
+      width: 350px;
+      height: 199px;
+      border-radius: 14px;
+      background: transparent;
+      border: 0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+    .logo-sec img{
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display:block;
+    }
+
+    .final-text h2{
+      margin:0 0 6px;
+      font-size: 16px;
+      font-weight: 800;
+    }
+    .final-text p{
+      margin:0;
+      color: var(--muted);
+      font-size: 13.5px;
+      line-height:1.55;
+    }
+
+    footer{
+      max-width: var(--maxw);
+      margin: 0 auto;
+      padding: 12px 16px 26px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .footbox{
+      border-top: 1px solid rgba(15,23,42,0.12);
+      padding-top: 12px;
+      display:flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content:space-between;
+      align-items:center;
+    }
+
+    /* Contact */
+    .contact-grid{
+      display:grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    @media (max-width: 900px){
+      .contact-grid{ grid-template-columns: 1fr; }
+    }
+    .contact-item{
+      border: 1px solid rgba(15,23,42,0.10);
+      border-radius: 14px;
+      padding: 12px;
+      background: #fbfdfb;
+    }
+    .contact-item .k{
+      font-weight: 800;
+      font-size: 13px;
+      margin:0 0 4px;
+      color: #0b2a16;
+    }
+    .contact-item .v{
+      margin:0;
+      color: var(--muted);
+      font-size: 13px;
+      word-break: break-word;
+    }
+    a{ color: inherit; }
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="hero-row">
+        <div class="logo-pref">
+          <img id="logoPrefeitura" alt="Logo da Prefeitura" />
+        </div>
+
+        <div>
+          <h1 class="hero-title">Painel de Indicadores Municipais</h1>
+          <div class="hero-subtitle">Dados oficiais • Atualização via Google Sheets</div>
+
+          <p class="hero-text">
+            <strong>Campo Verde</strong> é um município com <strong>grande produção primária</strong>, principalmente na produção agropecuária, de:
+            soja, milho, ovos, sementes, proteína animal, hortifrúti e, o algodão, que se consolidou como uma
+            cadeia e Polo Têxtil do MT.
+          </p>
+
+          <div class="hero-meta">
+            <div class="meta-pill" id="metaAtualizacao">Última atualização (ano base): —</div>
+            <div class="meta-pill">📈 Indicadores Municipais</div>
+            <div class="meta-pill">🧾 Fonte: SMDE </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-cards">
+        <div class="hero-card">
+          <p class="t">🏭 Avanço de Agroindustrialização</p>
+          <p class="d">Cadeias produtivas com agregação de valor e verticalização.</p>
+        </div>
+        <div class="hero-card">
+          <p class="t">🚚 Hub Logístico e Integração de Modais</p>
+          <p class="d">Integração rodoviária, ferroviária e aeroviária, conectando produção e mercados.</p>
+        </div>
+        <div class="hero-card">
+          <p class="t">🛡️ Infraestrutura, Formação e Qualificação</p>
+          <p class="d">Segurança, formação e qualificação profissional para sustentar crescimento e inovação.</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <div class="tabs" id="tabs"></div>
+    </div>
+    <div class="nav-hint">
+      👆 Use o menu acima para navegar pelos temas e consultar os indicadores municipais.
+    </div>
+  </nav>
+
+  <div class="debug-box" id="debugBox"></div>
+
+  <main>
+    <div class="header-row">
+      <div>
+        <h1 id="pageTitle">—</h1>
+        <p class="subtitle" id="pageSubtitle">—</p>
+      </div>
+    </div>
+
+    <section class="grid" id="grid"></section>
+  </main>
+
+  <section class="final">
+    <div class="final-card">
+      <div class="logo-sec">
+        <img id="logoSecretaria" alt="Logo da Secretaria" />
+      </div>
+      <div class="final-text">
+        <h2>Ecossistema de Oportunidades</h2>
+        <p>
+          O Município de Campo Verde produz duas safras consolidadas e, por isso, é reconhecido pelo seu potencial de produtor agrícola,
+          as safras figuram entre as maiores do estado do Mato Grosso — um ambiente produtivo, tecnológico, sustentável e capaz de atrair novos investimentos.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footbox">
+      <div>© <span id="anoAtual"></span> • Observatório Econômico de Campo Verde-MT </div>
+      <div>Desenvolvido por: Henrique Soares para navegação pública</div>
+    </div>
+  </footer>
+
+  <script>
+    // ========= ERROR GUARD =========
+    function showFatal(msg){
+      const box = document.getElementById("debugBox");
+      if (!box) return;
+      box.style.display = "block";
+      box.textContent = msg;
+    }
+    window.addEventListener("error", (e) => {
+      showFatal("Erro JavaScript:\n" + (e?.message || String(e)));
+    });
+
+    // ========= CONFIG =========
+    const LOGO_PREFEITURA_URL = "./logo-prefeitura.svg";
+    const LOGO_SECRETARIA_URL = "./logo-secretaria.svg";
+
+    const SPREADSHEET_ID = "1r_mJ3kj-yEqRf5z-Lahj80EkE_nUW9bNCJS5I9_I_Zw";
+    function csvUrlFromGid(gid){
+      return `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${gid}`;
+    }
+
+    // ========= SITE MAP =========
+    const SITE = [
+      {
+        key: "empregabilidade",
+        label: "Empregabilidade",
+        title: "Empregabilidade",
+        subtitle: "Indicadores do mercado de trabalho e CAGED.",
+        items: [
+          { title: "CAGED - Movimentação de Empregos", gid: "1787329921", badge: "CAGED", chart: "line" },
+          { title: "POSTOS CAGED", gid: "1538037155", badge: "CAGED", chart: "bar" },   // barras
+          { title: "SALDO CAGED", gid: "1664529561", badge: "CAGED", chart: "line" },
+          { title: "SETOR CAGED", gid: "667989355", badge: "CAGED", chart: "bar" },    // barras
+          { title: "ESTOQUE CAGED", gid: "183085482", badge: "CAGED", chart: "line" },
+        ],
+      },
+      {
+        key: "agronegocio",
+        label: "Agronegócio",
+        title: "Agronegócio",
+        subtitle: "Produção e indicadores agrícolas.",
+        items: [
+          { title: "SOJA", gid: "1259725950", badge: "AGRO", chart: "line" },
+          { title: "MILHO", gid: "529160465", badge: "AGRO", chart: "line" },
+          { title: "ALGODÃO", gid: "1996427760", badge: "AGRO", chart: "line" },
+          { title: "PLUMA", gid: "1559046357", badge: "AGRO", chart: "line" },
+          { title: "CAROÇO", gid: "971630155", badge: "AGRO", chart: "line" },
+        ],
+      },
+      {
+        key: "economia",
+        label: "Economia",
+        title: "Economia",
+        subtitle: "Indicadores econômicos, PIB, exportações e empresas.",
+        items: [
+          { title: "PIB", gid: "550123213", badge: "ECONOMIA", chart: "line" },
+          { title: "PIB PERCAPITA", gid: "691433788", badge: "ECONOMIA", chart: "line" },
+          { title: "EXPORTAÇÕES", gid: "1610374354", badge: "ECONOMIA", chart: "line" },
+          { title: "EMPRESAS", gid: "511808654", badge: "ECONOMIA", chart: "line" },
+          { title: "POPULAÇÃO", gid: "135525471", badge: "SOCIAL", chart: "line" },
+          { title: "IDEB", gid: "1813118854", badge: "SOCIAL", chart: "line" },
+          { title: "IDH", gid: "347730474", badge: "SOCIAL", chart: "line" },
+        ],
+      },
+      {
+        key: "contato",
+        label: "Contato",
+        title: "Contato",
+        subtitle: "Canais oficiais para informações e atendimento.",
+        items: [],
+      },
+    ];
+
+    // ========= UI =========
+    function applyLogos(){
+      const pref = document.getElementById("logoPrefeitura");
+      const sec  = document.getElementById("logoSecretaria");
+      if (pref) pref.src = LOGO_PREFEITURA_URL;
+      if (sec) sec.src = LOGO_SECRETARIA_URL;
+    }
+
+    function renderTabs(activeKey){
+      const tabs = document.getElementById("tabs");
+      tabs.innerHTML = "";
+      SITE.forEach(cat => {
+        const btn = document.createElement("button");
+        btn.className = "tab" + (cat.key === activeKey ? " active" : "");
+        btn.textContent = cat.label;
+        btn.onclick = () => location.hash = `#${cat.key}`;
+        tabs.appendChild(btn);
+      });
+    }
+
+    // ========= DATA / PARSING =========
+    const chartInstances = new Map();
+
+    // Paleta sem vermelho
+    const palette = ["#14532d", "#22c55e", "#0f766e", "#15803d", "#4d7c0f", "#0ea5a4", "#166534"];
+
+    function normalizeKey(k){
+      return String(k || "").replace(/\uFEFF/g,"").replace(/\u00A0/g," ").trim();
+    }
+
+    // Conversão robusta (pega NBSP, BOM, "−", milhar/decimal BR)
+    function toNumber(v){
+      if (v === null || v === undefined) return NaN;
+      if (typeof v === "number") return Number.isFinite(v) ? v : NaN;
+
+      let s = String(v);
+      s = s.replace(/\uFEFF/g, "").replace(/\u00A0/g, " ").trim(); // BOM + NBSP
+      s = s.replace(/\u2212/g, "-"); // menos unicode
+      s = s.replace(/[^\d,\.\-]/g, ""); // remove símbolos mantendo dígitos e separadores
+
+      if (!s || s === "-") return NaN;
+
+      // remove pontos de milhar (ex.: 1.234,56 -> 1234,56)
+      s = s.replace(/\.(?=\d{3}(\D|$))/g, "");
+      // vírgula decimal -> ponto
+      s = s.replace(",", ".");
+
+      const n = Number(s);
+      return Number.isFinite(n) ? n : NaN;
+    }
+
+    function buildDatasets(rows){
+      if (!rows.length) return { labels: [], datasets: [] };
+
+      // keys do primeiro row
+      const rawKeys = Object.keys(rows[0] || {});
+      const keys = rawKeys.map(normalizeKey).filter(Boolean);
+
+      // Mapear para acessar valores usando o key original (porque Papa usa keys originais)
+      // Criamos um "dicionário" normalizeKey(original) -> original
+      const normToOriginal = {};
+      rawKeys.forEach(orig => {
+        const norm = normalizeKey(orig);
+        if (norm && !normToOriginal[norm]) normToOriginal[norm] = orig;
+      });
+
+      let yearKeyNorm = keys.find(k => k.toUpperCase() === "ANO") || keys[0];
+      const yearKeyOrig = normToOriginal[yearKeyNorm] || rawKeys[0];
+
+      const valueKeyNorms = keys.filter(k => k !== yearKeyNorm);
+      const valueKeyOrigs = valueKeyNorms.map(k => normToOriginal[k]).filter(Boolean);
+
+      // limpar linhas com ano vazio
+      const clean = rows.filter(r => {
+        const y = r?.[yearKeyOrig];
+        return String(y ?? "").replace(/\u00A0/g," ").trim() !== "";
+      });
+
+      const labels = clean.map(r => String(r[yearKeyOrig]).replace(/\u00A0/g," ").trim());
+
+      const datasets = valueKeyOrigs.map((origKey, idx) => {
+        const labelNorm = valueKeyNorms[idx] || normalizeKey(origKey);
+        const color = palette[idx % palette.length];
+
+        const data = clean.map(r => {
+          const n = toNumber(r[origKey]);
+          return Number.isFinite(n) ? n : null; // null é melhor pro Chart.js do que NaN
+        });
+
+        return {
+          label: labelNorm,
+          data,
+          borderColor: color,
+          backgroundColor: color,
+          pointBackgroundColor: color,
+          pointBorderColor: color,
+          borderWidth: 3,
+          tension: 0.25,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          fill: false
+        };
+      });
+
+      return { labels, datasets };
+    }
+
+    // ========= CHART RENDER =========
+    function renderChartInto(canvasId, parsed, mode){
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+
+      const ctx = canvas.getContext("2d");
+
+      if (chartInstances.has(canvasId)){
+        chartInstances.get(canvasId).destroy();
+        chartInstances.delete(canvasId);
+      }
+
+      const type = (mode === "line") ? "line" : "bar";
+
+      // ajustes diferentes p/ linha vs barra
+      const common = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "top" },
+          tooltip: { mode: "index", intersect: false }
+        },
+        interaction: { mode: "index", intersect: false },
+        scales: {
+          x: { grid: { display: false } },
+          y: { beginAtZero: false } // permite negativos/valores naturais
+        }
+      };
+
+      // barras ficam mais legíveis com borda menor
+      if (type === "bar") {
+        parsed.datasets = parsed.datasets.map(ds => ({
+          ...ds,
+          borderWidth: 1,
+        }));
+      }
+
+      const chart = new Chart(ctx, { type, data: parsed, options: common });
+      chartInstances.set(canvasId, chart);
+    }
+
+    // ========= CSV LOADER (UTF-8 safe) =========
+    function loadCsvToChart({ gid, canvasId, mode, onError, onMeta }){
+      if (!gid){
+        onError("GID não configurado para este indicador.");
+        return;
+      }
+
+      const url = csvUrlFromGid(gid);
+
+      fetch(url)
+        .then(res => res.text())
+        .then(text => {
+          const parsedCsv = Papa.parse(text, { header: true, skipEmptyLines: true });
+
+          const rows = (parsedCsv.data || []).filter(Boolean);
+          const cleaned = rows.filter(r =>
+            Object.values(r).some(v => String(v ?? "").replace(/\u00A0/g," ").trim() !== "")
+          );
+
+          const parsed = buildDatasets(cleaned);
+          renderChartInto(canvasId, parsed, mode);
+
+          // meta = maior ano numérico
+          const years = parsed.labels
+            .map(x => Number(String(x).trim()))
+            .filter(n => Number.isFinite(n));
+
+          if (years.length && onMeta) onMeta(Math.max(...years));
+        })
+        .catch(err => {
+          onError("Erro ao baixar CSV: " + (err?.message || String(err)));
+        });
+    }
+
+    // ========= PAGES =========
+    function renderContato(){
+      const grid = document.getElementById("grid");
+      grid.innerHTML = `
+        <article class="card">
+          <div class="card-head">
+            <div>
+              <h3 class="card-title">Fale com a Secretaria</h3>
+              <div class="subtitle" style="margin-top:6px;">
+                Use os canais abaixo para solicitar informações, atualizações ou suporte.
+              </div>
+            </div>
+            <div class="badge">CONTATO</div>
+          </div>
+
+          <div class="contact-grid">
+            <div class="contact-item">
+              <p class="k">📞 Telefone</p>
+              <p class="v">+55 66 3419-2416</p>
+            </div>
+
+            <div class="contact-item">
+              <p class="k">💬 WhatsApp</p>
+              <p class="v">
+                <a href="https://wa.me/5566992579266" target="_blank" rel="noreferrer">
+                  +55 66 99257-9266
+                </a>
+              </p>
+            </div>
+
+            <div class="contact-item">
+              <p class="k">✉️ E-mail</p>
+              <p class="v">henrique.secdesenvolvimento@campoverde.mt.gov.br</p>
+            </div>
+
+            <div class="contact-item">
+              <p class="k">🌐 Site</p>
+              <p class="v">
+                <a href="https://campoverde.mt.gov.br/" target="_blank" rel="noreferrer">
+                  campoverde.mt.gov.br
+                </a>
+              </p>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderCategory(catKey){
+      const cat = SITE.find(c => c.key === catKey) || SITE[0];
+
+      renderTabs(cat.key);
+      document.getElementById("pageTitle").textContent = cat.title;
+      document.getElementById("pageSubtitle").textContent = cat.subtitle;
+
+      const grid = document.getElementById("grid");
+      grid.innerHTML = "";
+
+      if (cat.key === "contato"){
+        renderContato();
+        return;
+      }
+
+      let maxYear = null;
+      const metaEl = document.getElementById("metaAtualizacao");
+      metaEl.textContent = "Última atualização (ano base): —";
+
+      cat.items.forEach((item, idx) => {
+        const canvasId = `chart_${cat.key}_${idx}`;
+
+        const card = document.createElement("article");
+        card.className = "card";
+        card.innerHTML = `
+          <div class="card-head">
+            <div><h3 class="card-title">${item.title}</h3></div>
+            <div class="badge">${item.badge || "INDICADOR"}</div>
+          </div>
+
+          <div class="canvas-wrap">
+            <canvas id="${canvasId}"></canvas>
+            <div id="${canvasId}_err" class="error"></div>
+          </div>
+        `;
+        grid.appendChild(card);
+
+        const errBox = document.getElementById(`${canvasId}_err`);
+        const showErr = (msg) => {
+          errBox.style.display = "block";
+          errBox.textContent = msg;
+        };
+
+        loadCsvToChart({
+          gid: item.gid,
+          canvasId,
+          mode: item.chart || "line",
+          onError: showErr,
+          onMeta: (year) => {
+            if (Number.isFinite(year)) {
+              if (maxYear === null || year > maxYear) maxYear = year;
+              metaEl.textContent = `Última atualização (ano base): ${maxYear}`;
+            }
+          }
+        });
+      });
+    }
+
+    // ========= INIT =========
+    function getHashKey(){
+      const k = (location.hash || "").replace("#","").trim();
+      return k || SITE[0].key;
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("anoAtual").textContent = String(new Date().getFullYear());
+
+      applyLogos();
+      renderCategory(getHashKey());
+
+      window.addEventListener("hashchange", () => {
+        renderCategory(getHashKey());
+      });
+    });
+  </script>
+</body>
+</html>
