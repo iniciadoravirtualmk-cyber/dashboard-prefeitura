@@ -10,9 +10,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 
+  <!-- Chart.js + PapaParse + DataLabels -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <!-- DataLabels (rótulos em barras/pizza) -->
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
 
   <style>
@@ -28,6 +28,12 @@
       --sombra: 0 10px 28px rgba(2, 6, 23, 0.10);
       --radius:16px;
       --maxw: 1180px;
+
+      --cinza:#6b7280;
+      --verde:#166534;
+      --laranja:#f59e0b;
+      --laranja2:#d97706;
+      --cinza2:#9ca3af;
     }
 
     *{ box-sizing:border-box; }
@@ -37,6 +43,7 @@
       background: var(--cinza-fundo);
       color: var(--texto);
     }
+    a{ color: inherit; }
 
     /* Debug error (aparece se houver erro JS fatal) */
     .debug-box{
@@ -233,7 +240,7 @@
     }
     h1{
       margin: 10px 0 4px;
-      font-size: 28px;
+      font-size: 32px;
       letter-spacing: .2px;
       font-weight: 800;
     }
@@ -303,16 +310,26 @@
       display:none;
     }
 
-    .note{
-      margin-top: 8px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: rgba(164,198,57,0.12);
-      border: 1px solid rgba(164,198,57,0.25);
-      color: #0b2a16;
-      font-size: 13px;
-      line-height: 1.5;
-      font-weight: 600;
+    /* Card texto (Produção Regional) — não espremido */
+    .highlight-wide{
+      display:flex;
+      align-items:flex-start;
+      gap:12px;
+      padding:14px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(164,198,57,.20), rgba(164,198,57,.08));
+      border: 1px solid rgba(15,23,42,.10);
+    }
+    .highlight-wide strong{
+      color:#0b2a16;
+      font-weight: 800;
+    }
+    .highlight-wide p{
+      margin:0;
+      color:#0b2a16;
+      font-weight:700;
+      line-height:1.55;
+      font-size:14px;
     }
 
     /* FINAL SECTION */
@@ -411,7 +428,6 @@
       font-size: 13px;
       word-break: break-word;
     }
-    a{ color: inherit; }
   </style>
 </head>
 
@@ -497,7 +513,7 @@
 
   <footer>
     <div class="footbox">
-      <div>© <span id="anoAtual"></span> • Observatório Econômico de Campo Verde-MT </div>
+      <div>© <span id="anoAtual"></span> • Observatório Econômico de Campo Verde-MT</div>
       <div>Desenvolvido por: Henrique Soares para navegação pública</div>
     </div>
   </footer>
@@ -515,7 +531,7 @@
     });
 
     // ========= CONFIG =========
-    // Este arquivo está em /indicadores/ e os SVGs estão na raiz:
+    // (esta página está em /indicadores/ e os SVGs na raiz)
     const LOGO_PREFEITURA_URL = "../logo-prefeitura.svg";
     const LOGO_SECRETARIA_URL = "../logo-secretaria.svg";
 
@@ -572,15 +588,14 @@
         label: "Produção Regional",
         title: "Produção Regional",
         subtitle: "Originação e participação regional — região (colunas) e ranking (pizza).",
-        note: "Campo Verde não possui saturação na utilização de suas matérias-primas. Isso significa originação livre de concorrência para verticalização, com forte atrativo logístico pela proximidade das áreas produtivas e corredores de escoação.",
         items: [
-          { title: "SOJA • Região (Produção)", gid: "26475475", badge: "REGIÃO", chart: "bar_region" },
-          { title: "MILHO • Região (Produção)", gid: "104557507", badge: "REGIÃO", chart: "bar_region" },
-          { title: "ALGODÃO • Região (Produção)", gid: "307631985", badge: "REGIÃO", chart: "bar_region" },
+          { title: "SOJA • Região (Produção)",   gid: "26475475",   badge: "REGIÃO",  chart: "region_cols" },
+          { title: "MILHO • Região (Produção)",  gid: "104557507",  badge: "REGIÃO",  chart: "region_cols" },
+          { title: "ALGODÃO • Região (Produção)",gid: "307631985",  badge: "REGIÃO",  chart: "region_cols" },
 
-          { title: "RANKING • Soja", gid: "1395536313", badge: "RANKING", chart: "pie_ranking" },
-          { title: "RANKING • Milho", gid: "1213250554", badge: "RANKING", chart: "pie_ranking" },
-          { title: "RANKING • Algodão", gid: "743387491", badge: "RANKING", chart: "pie_ranking" },
+          { title: "RANKING • Soja",             gid: "1395536313", badge: "RANKING", chart: "pie_rank" },
+          { title: "RANKING • Milho",            gid: "1213250554", badge: "RANKING", chart: "pie_rank" },
+          { title: "RANKING • Algodão",          gid: "743387491",  badge: "RANKING", chart: "pie_rank" },
         ],
       },
       {
@@ -615,40 +630,27 @@
     // ========= DATA / PARSING =========
     const chartInstances = new Map();
 
-    // Paleta sem vermelho (linhas)
-    const palette = ["#14532d", "#22c55e", "#0f766e", "#15803d", "#4d7c0f", "#0ea5a4", "#166534"];
-
-    // Region bars: alternar cinza/verde/laranja (mais fortes)
-    const regionColors = ["#6b7280", "#166534", "#f59e0b", "#374151", "#22c55e", "#d97706"];
-
-    // Ranking pie: alternar cinza/verde/laranja (harmônico)
-    const pieColors = ["#9ca3af", "#22c55e", "#f59e0b", "#6b7280", "#166534", "#d97706", "#4b5563", "#15803d", "#fbbf24"];
-
     function normalizeKey(k){
       return String(k || "").replace(/\uFEFF/g,"").replace(/\u00A0/g," ").trim();
     }
 
-    // Conversão robusta (pega NBSP, BOM, "−", milhar/decimal BR)
     function toNumber(v){
       if (v === null || v === undefined) return NaN;
       if (typeof v === "number") return Number.isFinite(v) ? v : NaN;
 
       let s = String(v);
-      s = s.replace(/\uFEFF/g, "").replace(/\u00A0/g, " ").trim(); // BOM + NBSP
-      s = s.replace(/\u2212/g, "-"); // menos unicode
-      s = s.replace(/[^\d,\.\-]/g, ""); // remove símbolos mantendo dígitos e separadores
+      s = s.replace(/\uFEFF/g, "").replace(/\u00A0/g, " ").trim();
+      s = s.replace(/\u2212/g, "-");
+      s = s.replace(/[^\d,\.\-]/g, "");
       if (!s || s === "-") return NaN;
 
-      // remove pontos de milhar (ex.: 1.234,56 -> 1234,56)
       s = s.replace(/\.(?=\d{3}(\D|$))/g, "");
-      // vírgula decimal -> ponto
       s = s.replace(",", ".");
-
       const n = Number(s);
       return Number.isFinite(n) ? n : NaN;
     }
 
-    function buildXYDatasets(rows){
+    function buildDatasets(rows){
       if (!rows.length) return { labels: [], datasets: [] };
 
       const rawKeys = Object.keys(rows[0] || {});
@@ -660,25 +662,32 @@
         if (norm && !normToOriginal[norm]) normToOriginal[norm] = orig;
       });
 
-      const labelKeyNorm = keys.find(k => k.toUpperCase() === "ANO") || keys[0];
-      const labelKeyOrig = normToOriginal[labelKeyNorm] || rawKeys[0];
+      let yearKeyNorm = keys.find(k => k.toUpperCase() === "ANO") || keys[0];
+      const yearKeyOrig = normToOriginal[yearKeyNorm] || rawKeys[0];
 
-      const valueKeyNorms = keys.filter(k => k !== labelKeyNorm);
+      const valueKeyNorms = keys.filter(k => k !== yearKeyNorm);
       const valueKeyOrigs = valueKeyNorms.map(k => normToOriginal[k]).filter(Boolean);
 
-      const clean = rows.filter(r => String(r?.[labelKeyOrig] ?? "").replace(/\u00A0/g," ").trim() !== "");
-      const labels = clean.map(r => String(r[labelKeyOrig]).replace(/\u00A0/g," ").trim());
+      const clean = rows.filter(r => {
+        const y = r?.[yearKeyOrig];
+        return String(y ?? "").replace(/\u00A0/g," ").trim() !== "";
+      });
+
+      const labels = clean.map(r => String(r[yearKeyOrig]).replace(/\u00A0/g," ").trim());
+
+      // paleta base (sem vermelho) para gráficos “normais”
+      const basePalette = ["#14532d", "#22c55e", "#0f766e", "#15803d", "#4d7c0f", "#0ea5a4", "#166534"];
 
       const datasets = valueKeyOrigs.map((origKey, idx) => {
-        const label = valueKeyNorms[idx] || normalizeKey(origKey);
-        const color = palette[idx % palette.length];
+        const labelNorm = valueKeyNorms[idx] || normalizeKey(origKey);
+        const color = basePalette[idx % basePalette.length];
         const data = clean.map(r => {
           const n = toNumber(r[origKey]);
           return Number.isFinite(n) ? n : null;
         });
 
         return {
-          label,
+          label: labelNorm,
           data,
           borderColor: color,
           backgroundColor: color,
@@ -695,44 +704,24 @@
       return { labels, datasets };
     }
 
-    // Para pizza: usa 1 coluna de valor e labels na 1a coluna
-    function buildPieData(rows){
-      if (!rows.length) return { labels: [], datasets: [] };
+    // ========= HELPERS: COLORS FOR REGIONAL/RANK =========
+    const altStrong = [getComputedStyle(document.documentElement).getPropertyValue('--cinza').trim() || '#6b7280',
+                       getComputedStyle(document.documentElement).getPropertyValue('--verde').trim() || '#166534',
+                       getComputedStyle(document.documentElement).getPropertyValue('--laranja2').trim() || '#d97706'];
 
-      const rawKeys = Object.keys(rows[0] || {});
-      const keysNorm = rawKeys.map(normalizeKey).filter(Boolean);
+    const altSoft = [getComputedStyle(document.documentElement).getPropertyValue('--cinza2').trim() || '#9ca3af',
+                     '#22c55e',
+                     getComputedStyle(document.documentElement).getPropertyValue('--laranja').trim() || '#f59e0b'];
 
-      const labelKeyOrig = rawKeys[0]; // primeira coluna (cidade)
-      const valueKeyOrig = rawKeys.find((k, i) => i > 0) || rawKeys[1]; // segunda coluna (valor)
-
-      const labels = rows
-        .map(r => String(r?.[labelKeyOrig] ?? "").trim())
-        .filter(Boolean);
-
-      const data = rows
-        .map(r => toNumber(r?.[valueKeyOrig]))
-        .map(n => (Number.isFinite(n) ? n : 0));
-
-      // Se não soma ~100, ainda assim mostramos % calculado do total
-      const colors = labels.map((_, i) => pieColors[i % pieColors.length]);
-
-      return {
-        labels,
-        datasets: [{
-          label: normalizeKey(valueKeyOrig),
-          data,
-          backgroundColor: colors,
-          borderColor: "#ffffff",
-          borderWidth: 2
-        }]
-      };
+    function colorsAlternating(n, strong=true){
+      const base = strong ? altStrong : altSoft;
+      return Array.from({length:n}, (_,i)=>base[i%base.length]);
     }
 
     // ========= CHART RENDER =========
     function renderChartInto(canvasId, parsed, chartMode){
       const canvas = document.getElementById(canvasId);
       if (!canvas) return;
-
       const ctx = canvas.getContext("2d");
 
       if (chartInstances.has(canvasId)){
@@ -740,105 +729,132 @@
         chartInstances.delete(canvasId);
       }
 
-      // decidir tipo real
-      let type = "line";
-      if (chartMode === "line") type = "line";
-      if (chartMode === "bar") type = "bar";
-      if (chartMode === "bar_region") type = "bar";
-      if (chartMode === "pie_ranking") type = "pie";
+      // registrar plugin de datalabels
+      if (window.ChartDataLabels) {
+        Chart.register(ChartDataLabels);
+      }
 
-      // base options
+      // default
+      let type = "line";
+      let legendDisplay = true;
+      let datalabels = { display: false };
+
+      // opções base
       const options = {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { position: "top" },
-          tooltip: { mode: "index", intersect: false }
+          legend: { position: "top", display: true },
+          tooltip: { mode: "index", intersect: false },
+          datalabels: { display: false }
         },
         interaction: { mode: "index", intersect: false },
-        scales: (type === "pie") ? undefined : {
+        scales: {
           x: { grid: { display: false } },
           y: { beginAtZero: false }
         }
       };
 
-      // datalabels config
-      const dlBase = {
-        clamp: true,
-        clip: true
-      };
+      // ===== modos especiais =====
+      if (chartMode === "bar" || chartMode === "region_cols") {
+        type = "bar";
 
-      // barras com rótulo do valor
-      if (type === "bar") {
-        // Se for "region", aplicar cores alternadas no dataset (1 dataset comum)
-        if (chartMode === "bar_region" && parsed?.datasets?.length === 1) {
-          parsed.datasets[0].backgroundColor = parsed.labels.map((_, i) => regionColors[i % regionColors.length]);
-          parsed.datasets[0].borderColor = parsed.datasets[0].backgroundColor;
-          parsed.datasets[0].borderWidth = 1;
+        // barras: borda menor
+        parsed.datasets = parsed.datasets.map(ds => ({ ...ds, borderWidth: 1 }));
+
+        // se for regional: legenda OFF + cores alternadas fortes + rótulo valor ON
+        if (chartMode === "region_cols") {
+          legendDisplay = false;
+
+          // normalmente vem 1 dataset
+          parsed.datasets = parsed.datasets.map(ds => {
+            const n = (ds.data || []).length;
+            return {
+              ...ds,
+              backgroundColor: colorsAlternating(n, true),
+              borderColor: colorsAlternating(n, true),
+            };
+          });
+
+          datalabels = {
+            display: true,
+            anchor: "end",
+            align: "end",
+            offset: 2,
+            color: "#0b2a16",
+            font: { weight: "800", size: 12 },
+            formatter: (v) => (v === null || v === undefined) ? "" : String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+          };
         } else {
-          // barras genéricas
-          parsed.datasets = parsed.datasets.map(ds => ({ ...ds, borderWidth: 1 }));
+          // barras normais: pode manter legenda
+          datalabels = { display: false };
         }
 
-        options.plugins.tooltip = { mode: "index", intersect: false };
-        options.plugins.datalabels = {
-          ...dlBase,
-          color: "#0b2a16",
-          anchor: "end",
-          align: "end",
-          offset: 2,
-          font: { weight: "700", size: 11 },
-          formatter: (v) => (v === null || v === undefined) ? "" : String(v).replace(".", ",")
-        };
-      }
+      } else if (chartMode === "pie_rank") {
+        type = "pie";
+        // pizza: queremos somente % nas fatias (sem nomes)
+        // mantém legenda (nomes) para não perder identificação
+        legendDisplay = true;
 
-      // linha: sem rótulo (evita poluir), mas pode ligar depois se quiser
-      if (type === "line") {
-        options.plugins.datalabels = { display: false };
-      }
+        // garantir 1 dataset
+        const ds0 = parsed.datasets[0] || { data: [] };
+        const n = (ds0.data || []).length;
 
-      // pizza: mostrar % + nome
-      if (type === "pie") {
+        parsed.datasets = [{
+          ...ds0,
+          backgroundColor: colorsAlternating(n, false),
+          borderColor: "#ffffff",
+          borderWidth: 2
+        }];
+
+        // ajustar tooltip para pie
         options.plugins.tooltip = {
           callbacks: {
             label: (ctx) => {
               const label = ctx.label || "";
-              const val = ctx.parsed || 0;
-              const total = (ctx.dataset.data || []).reduce((a,b)=>a+(Number(b)||0),0) || 1;
-              const pct = (val/total)*100;
-              return `${label}: ${pct.toFixed(1)}%`;
+              const value = ctx.parsed;
+              const dataArr = ctx.dataset.data || [];
+              const sum = dataArr.reduce((a,b)=>a + (Number(b)||0), 0);
+              const pct = sum ? (value/sum*100) : 0;
+              const vFmt = String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+              return `${label}: ${vFmt} (${pct.toFixed(1)}%)`;
             }
           }
         };
-        options.plugins.datalabels = {
-          ...dlBase,
+
+        // datalabels somente % (sem nome)
+        datalabels = {
+          display: true,
           color: "#ffffff",
-          font: { weight: "800", size: 11 },
-          formatter: (val, ctx) => {
-            const labels = ctx.chart.data.labels || [];
-            const label = labels[ctx.dataIndex] || "";
-            const dataArr = ctx.chart.data.datasets?.[0]?.data || [];
-            const total = dataArr.reduce((a,b)=>a+(Number(b)||0),0) || 1;
-            const pct = (Number(val)/total)*100;
-            if (!Number.isFinite(pct) || pct <= 0) return "";
-            return `${label}\n${pct.toFixed(1)}%`;
+          font: { weight: "800", size: 12 },
+          formatter: (value, ctx) => {
+            const dataArr = ctx.chart.data.datasets[0].data || [];
+            const sum = dataArr.reduce((a,b)=>a + (Number(b)||0), 0);
+            if (!sum) return "";
+            const pct = (Number(value)||0) / sum * 100;
+            return pct >= 3 ? `${pct.toFixed(1)}%` : ""; // esconde fatias muito pequenas
           }
         };
+
+        // pie não usa scales
+        delete options.scales;
+        options.plugins.legend.position = "top";
+      } else {
+        // line padrão
+        type = "line";
+        legendDisplay = true;
+        datalabels = { display: false };
       }
 
-      // registrar plugin
-      const chart = new Chart(ctx, {
-        type,
-        data: parsed,
-        options,
-        plugins: [ChartDataLabels]
-      });
+      options.plugins.legend.display = legendDisplay;
+      options.plugins.datalabels = datalabels;
 
+      const chart = new Chart(ctx, { type, data: parsed, options });
       chartInstances.set(canvasId, chart);
     }
 
-    // ========= CSV LOADER (UTF-8 safe) =========
-    function loadCsvToChart({ gid, canvasId, mode, onError, onMeta }){
+    // ========= CSV LOADER =========
+    function loadCsvToChart({ gid, canvasId, chartMode, onError, onMeta }){
       if (!gid){
         onError("GID não configurado para este indicador.");
         return;
@@ -856,20 +872,19 @@
             Object.values(r).some(v => String(v ?? "").replace(/\u00A0/g," ").trim() !== "")
           );
 
-          // escolher parser
-          let parsed;
-          if (mode === "pie_ranking") parsed = buildPieData(cleaned);
-          else parsed = buildXYDatasets(cleaned);
+          const parsed = buildDatasets(cleaned);
+          renderChartInto(canvasId, parsed, chartMode);
 
-          renderChartInto(canvasId, parsed, mode);
-
-          // meta = maior ano numérico (apenas se existir "ANO" nos labels)
-          const years = (parsed.labels || [])
+          // meta = maior ano numérico
+          const years = parsed.labels
             .map(x => Number(String(x).trim()))
             .filter(n => Number.isFinite(n));
+
           if (years.length && onMeta) onMeta(Math.max(...years));
         })
-        .catch(err => onError("Erro ao baixar CSV: " + (err?.message || String(err))));
+        .catch(err => {
+          onError("Erro ao baixar CSV: " + (err?.message || String(err)));
+        });
     }
 
     // ========= PAGES =========
@@ -935,12 +950,29 @@
         return;
       }
 
-      // nota (quando existir)
-      if (cat.note) {
-        const note = document.createElement("div");
-        note.className = "note";
-        note.textContent = cat.note;
-        grid.appendChild(note);
+      // Produção Regional: inserir card texto “wide” (não espremido)
+      if (cat.key === "producao_regional") {
+        const info = document.createElement("article");
+        info.className = "card";
+        info.innerHTML = `
+          <div class="card-head">
+            <div>
+              <h3 class="card-title">Originação livre e atrativo logístico</h3>
+              <div class="subtitle" style="margin-top:6px;">
+                Posicionamento estratégico para verticalização e investimentos.
+              </div>
+            </div>
+            <div class="badge">DESTAQUE</div>
+          </div>
+          <div class="highlight-wide">
+            <p>
+              <strong>Campo Verde</strong> não possui saturação na utilização de suas matérias-primas.
+              Isso significa originação livre de concorrência para verticalização, com forte atrativo logístico
+              pela proximidade das áreas produtivas e corredores de escoação.
+            </p>
+          </div>
+        `;
+        grid.appendChild(info);
       }
 
       let maxYear = null;
@@ -974,7 +1006,7 @@
         loadCsvToChart({
           gid: item.gid,
           canvasId,
-          mode: item.chart || "line",
+          chartMode: item.chart || "line",
           onError: showErr,
           onMeta: (year) => {
             if (Number.isFinite(year)) {
@@ -994,9 +1026,13 @@
 
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("anoAtual").textContent = String(new Date().getFullYear());
+
       applyLogos();
       renderCategory(getHashKey());
-      window.addEventListener("hashchange", () => renderCategory(getHashKey()));
+
+      window.addEventListener("hashchange", () => {
+        renderCategory(getHashKey());
+      });
     });
   </script>
 </body>
