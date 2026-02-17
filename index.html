@@ -9,22 +9,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>
-  .lang-switch{
-    display:flex; gap:8px; align-items:center;
-  }
-  .lang-btn{
-    border:1px solid rgba(255,255,255,.25);
-    background: rgba(255,255,255,.10);
-    color:#fff;
-    border-radius: 999px;
-    padding: 8px 10px;
-    cursor:pointer;
-    font-size: 16px;
-    line-height: 1;
-  }
-  .lang-btn:hover{ transform: translateY(-1px); }
-</style>
 
   <style>
     :root{
@@ -81,14 +65,27 @@
       position:absolute;inset:-110px -140px auto auto;
       width:360px;height:360px;border-radius:50%;
       background:rgba(164,198,57,.18);
+      pointer-events:none;
     }
+
     .hero-top{
-      display:flex;align-items:center;justify-content:space-between;gap:14px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:14px;
       padding-bottom:12px;
     }
+
+    .hero-top-left{
+      display:flex;
+      align-items:flex-start;
+      gap:16px;
+      flex-wrap:wrap;
+    }
+
     .logos{display:flex;gap:14px;align-items:center}
 
-    /* ✅ Logos 3x maiores */
+    /* Logos */
     .logoBox{
       width: 180px;
       height: 180px;
@@ -98,76 +95,82 @@
       display:flex;align-items:center;justify-content:center;
       overflow:hidden;
       box-shadow:0 12px 26px rgba(0,0,0,.18);
+      flex: 0 0 auto;
     }
     .logoBox img{width:100%;height:100%;object-fit:contain;display:block}
 
     @media (max-width: 520px){
       .logoBox{ width: 120px; height: 120px; }
     }
-.hero-top{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:14px;
-  padding-bottom:12px;
-}
 
-.hero-top-left{
-  display:flex;
-  align-items:flex-start;
-  gap:16px;
-}
+    /* Language switch */
+    .lang-switch{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex: 0 0 auto;
+      margin-top: 6px;
+    }
+    .lang-btn{
+      border:1px solid rgba(255,255,255,.25);
+      background: rgba(255,255,255,.10);
+      color:#fff;
+      border-radius: 999px;
+      padding: 8px 10px;
+      cursor:pointer;
+      font-size: 16px;
+      line-height: 1;
+      transition:.15s ease;
+    }
+    .lang-btn:hover{ transform: translateY(-1px); }
 
-@media (max-width: 900px){
-  .hero-top-left{
-    flex-direction:column;
-    gap:12px;
-  }
-}
+    /* Card de destaque no topo */
+    .top-highlight{
+      width: 320px;
+      max-width: 38vw;
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 16px;
+      padding: 12px 12px;
+      box-shadow: 0 10px 20px rgba(0,0,0,.14);
+    }
 
-/* Card de destaque no topo */
-.top-highlight{
-  width: 320px;
-  max-width: 38vw;
-  background: rgba(255,255,255,.10);
-  border: 1px solid rgba(255,255,255,.18);
-  border-radius: 16px;
-  padding: 12px 12px;
-  box-shadow: 0 10px 20px rgba(0,0,0,.14);
-}
+    .top-highlight h3{
+      margin: 10px 0 8px;
+      font-size: 18px;
+      font-weight: 800;
+      line-height: 1.15;
+      color:#fff;
+    }
+    .top-highlight p{
+      margin: 0;
+      opacity: .95;
+      font-size: 13.8px;
+      line-height: 1.55;
+      color:#fff;
+    }
 
-@media (max-width: 900px){
-  .top-highlight{
-    width: 100%;
-    max-width: 520px;
-  }
-  @media (max-width: 900px){
-  .top-highlight{ display:none; }
-}
-}
+    /* pill amarelinha no destaque */
+    .pill-yellow{
+      background: rgba(245,197,66,.22);
+      border: 1px solid rgba(245,197,66,.45);
+      color: #fff;
+    }
 
-.top-highlight h3{
-  margin: 10px 0 8px;
-  font-size: 18px;
-  font-weight: 800;
-  line-height: 1.15;
-  color:#fff;
-}
-
-.top-highlight p{
-  margin: 0;
-  opacity: .95;
-  font-size: 13.8px;
-  line-height: 1.55;
-  color:#fff;
-}
-
-/* pill amarelinha no destaque */
-.pill-yellow{
-  background: rgba(245,197,66,.22);
-  border: 1px solid rgba(245,197,66,.45);
-  color: #fff;
-}
+    @media (max-width: 900px){
+      .hero-top-left{
+        flex-direction:column;
+        gap:12px;
+      }
+      .top-highlight{
+        width: 100%;
+        max-width: 520px;
+      }
+    }
+    /* esconder no mobile (regra separada e válida) */
+    @media (max-width: 900px){
+      .top-highlight{ display:none; }
+    }
 
     .hero-main{
       display:grid;
@@ -179,6 +182,7 @@
     @media (max-width: 900px){
       .hero-main{grid-template-columns:1fr}
     }
+
     .kicker{
       display:inline-flex;gap:10px;align-items:center;
       font-weight:800;color:rgba(255,255,255,.90);
@@ -188,8 +192,6 @@
       padding:8px 12px;border-radius:999px;
       width:fit-content;
     }
-    <h1 data-i18n="hero_title">Painel de Indicadores Municipais</h1>
-<p data-i18n="hero_subtitle">Dados oficiais • Atualização via Google Sheets</p>
 
     h1{
       margin:12px 0 8px;
@@ -200,6 +202,7 @@
     @media (max-width: 520px){
       h1{font-size:34px}
     }
+
     .lead{
       margin:0;
       font-size:15.5px;
@@ -209,43 +212,39 @@
     }
     .hero-ctas{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
 
-    /* ✅ Cards mais retangulares + título/emoji em 1 linha */
-  .hero-cards{
-  margin-top:18px;
-  display:grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap:14px;
-  align-items: stretch;
-}
+    /* Cards */
+    .hero-cards{
+      margin-top:18px;
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap:14px;
+      align-items: stretch;
+    }
+    @media (max-width: 980px){
+      .hero-cards{ grid-template-columns: repeat(2, minmax(260px, 1fr)); }
+    }
+    @media (max-width: 620px){
+      .hero-cards{ grid-template-columns: 1fr; }
+    }
 
-
-@media (max-width: 980px){
-  .hero-cards{ grid-template-columns: repeat(2, minmax(260px, 1fr)); }
-}
-@media (max-width: 620px){
-  .hero-cards{ grid-template-columns: 1fr; }
-}
-
-.miniCard .t{
-  margin:0 0 6px;
-  font-weight:800;
-  font-size:16px;
-  display:flex;
-  gap:8px;
-  align-items:center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.miniCard{
-  padding: 18px 18px;
-  border-radius: 16px;
-  background: rgba(255,255,255,.08);
-  border: 1px solid rgba(255,255,255,.16);
-  box-shadow: 0 10px 21px rgba(0,0,0,.14);
-}
-
+    .miniCard{
+      padding: 18px 18px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.16);
+      box-shadow: 0 10px 21px rgba(0,0,0,.14);
+    }
+    .miniCard .t{
+      margin:0 0 6px;
+      font-weight:800;
+      font-size:16px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     .miniCard .d{margin:0;font-size:13.7px;opacity:.95;line-height:1.45}
 
     /* SECTIONS */
@@ -313,33 +312,27 @@
     .ctaInner .t{font-weight:800}
     .ctaInner .s{color:var(--muted);font-size:13px;margin-top:2px}
 
-    /* ✅ Integração de modais (14cm x 14cm approx) */
-    .modal-box{
+    /* Integração de modais */
+    .modal-box{display:flex;justify-content:center;margin-top: 12px;}
+    .modal-img{
+      width: min(980px, 92vw);
+      aspect-ratio: 16 / 9;
+      height: auto;
+      border-radius: 18px;
+      border: 1px dashed rgba(15,23,42,.18);
+      background: #fff;
+      box-shadow: var(--shadow);
+      overflow:hidden;
       display:flex;
+      align-items:center;
       justify-content:center;
-      margin-top: 12px;
     }
-   .modal-img{
-  width: min(980px, 92vw);
-  aspect-ratio: 16 / 9;     /* quadro proporcional à imagem */
-  height: auto;
-  border-radius: 18px;
-  border: 1px dashed rgba(15,23,42,.18);
-  background: #fff;
-  box-shadow: var(--shadow);
-  overflow:hidden;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-
-.modal-img img{
-  width:100%;
-  height:100%;
-  object-fit: cover;        /* preenche bonito */
-  display:block;
-}
-
+    .modal-img img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
 
     /* FOOTER */
     footer{padding:18px 0 26px;color:var(--muted);font-size:12px}
@@ -357,26 +350,24 @@
     .contactItem .k{margin:0 0 4px;font-weight:800;color:#0b2a16}
     .contactItem .v{margin:0;color:var(--muted);word-break:break-word}
 
-    /* ✅ “Desenvolvido por” card */
- .devBox{
-  height: 260px;                 /* aumenta área útil */
-  border-radius:16px;
-  border:1px dashed rgba(15,23,42,.14);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:#fff;
-  overflow:hidden;
-  padding: 8px;                  /* menos padding = logo maior */
-}
-
-.devBox img{
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display:block;
-}
-
+    /* Desenvolvido por */
+    .devBox{
+      height: 260px;
+      border-radius:16px;
+      border:1px dashed rgba(15,23,42,.14);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#fff;
+      overflow:hidden;
+      padding: 8px;
+    }
+    .devBox img{
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display:block;
+    }
   </style>
 </head>
 
@@ -385,73 +376,77 @@
   <!-- HERO -->
   <header class="hero">
     <div class="wrap">
-     <div class="hero-top">
-  <div class="hero-top-left">
-    <div class="logos">
-      <div class="logoBox">
-        <img src="./logo-prefeitura.svg" alt="Prefeitura de Campo Verde">
+      <div class="hero-top">
+        <div class="hero-top-left">
+          <div class="logos">
+            <div class="logoBox">
+              <img src="./logo-prefeitura.svg" alt="Prefeitura de Campo Verde">
+            </div>
+          </div>
+
+          <div class="lang-switch" aria-label="Selecionar idioma">
+            <button type="button" class="lang-btn" data-lang="pt" title="Português">🇧🇷</button>
+            <button type="button" class="lang-btn" data-lang="en" title="English">🇺🇸</button>
+            <button type="button" class="lang-btn" data-lang="zh" title="中文（简体）">🇨🇳</button>
+          </div>
+
+          <div class="top-highlight">
+            <div class="pill pill-yellow">⭐ Destaque</div>
+            <h3 data-i18n="highlight_title">Campo Verde: Capital do Algodão</h3>
+            <p data-i18n="highlight_desc">Números e infraestrutura reforçam o potencial industrial e exportador do município.</p>
+          </div>
+        </div>
+
+        <a class="btn ghost" href="https://campoverde.mt.gov.br/" target="_blank" rel="noreferrer">
+          🌐 campoverde.mt.gov.br
+        </a>
       </div>
-    </div>
-<div class="lang-switch">
-  <button class="lang-btn" data-lang="pt" title="Português">🇧🇷</button>
-  <button class="lang-btn" data-lang="en" title="English">🇺🇸</button>
-  <button class="lang-btn" data-lang="zh" title="中文（简体）">🇨🇳</button>
-</div>
-
-    <div class="top-highlight">
-      <div class="pill pill-yellow">⭐ Destaque</div>
-      <h3>Campo Verde: Capital do Algodão</h3>
-      <p>Números e infraestrutura reforçam o potencial industrial e exportador do município.</p>
-    </div>
-  </div>
-
-  <a class="btn ghost" href="https://campoverde.mt.gov.br/" target="_blank" rel="noreferrer">
-    🌐 campoverde.mt.gov.br
-  </a>
-</div>
-
 
       <div class="hero-main">
         <div>
-          <div class="kicker">🌍 Ecossistema para Novos Investimentos</div>
-          <h1>Campo Verde/MT</h1>
-          <p class="lead">
+          <div class="kicker" data-i18n="kicker">🌍 Ecossistema para Novos Investimentos</div>
+
+          <!-- ✅ textos que mudam de idioma -->
+          <h1 data-i18n="hero_title">Campo Verde/MT</h1>
+
+          <p class="lead" data-i18n="hero_lead">
             Município com forte base agropecuária e visão de futuro: verticalização, logística integrada e ambiente favorável à industrialização.
             Destaque para o algodão, grãos e proteína animal — com agenda ativa de atração de investimentos.
           </p>
 
           <div class="hero-ctas">
-            <a class="btn primary" href="/indicadores/">📊 Acessar Indicadores</a>
-            <a class="btn dark" href="https://wa.me/5566992579266" target="_blank" rel="noreferrer">💬 Falar no WhatsApp</a>
+            <a class="btn primary" href="/indicadores/" data-i18n="cta_indicadores">📊 Acessar Indicadores</a>
+            <a class="btn dark" href="https://wa.me/5566992579266" target="_blank" rel="noreferrer" data-i18n="cta_whatsapp">💬 Falar no WhatsApp</a>
           </div>
 
           <div class="hero-cards">
             <div class="miniCard">
-              <p class="t">🏭 Avanço de Agroindustrialização</p>
-              <p class="d">Agregação de valor e expansão da capacidade produtiva local.</p>
+              <p class="t" data-i18n="card1_title">🏭 Avanço de Agroindustrialização</p>
+              <p class="d" data-i18n="card1_desc">Agregação de valor e expansão da capacidade produtiva local.</p>
             </div>
             <div class="miniCard">
-              <p class="t">🚚 Hub Integrador de Modais</p>
-              <p class="d">Conexão rodoviária, ferroviária e aeroviária conectando mercados.</p>
+              <p class="t" data-i18n="card2_title">🚚 Hub Integrador de Modais</p>
+              <p class="d" data-i18n="card2_desc">Conexão rodoviária, ferroviária e aeroviária conectando mercados.</p>
             </div>
             <div class="miniCard">
-              <p class="t">🛡️ Infraestrutura e Qualificação</p>
-              <p class="d">Governança e formação para sustentar inovação e competitividade.</p>
+              <p class="t" data-i18n="card3_title">🛡️ Infraestrutura e Qualificação</p>
+              <p class="d" data-i18n="card3_desc">Governança e formação para sustentar inovação e competitividade.</p>
             </div>
           </div>
         </div>
       </div>
 
+    </div>
   </header>
 
   <!-- CTA STRIP -->
   <div class="ctaStrip">
     <div class="wrap ctaInner">
       <div>
-        <div class="t">Use o painel de indicadores para embasar decisões e demonstrar transparência.</div>
-        <div class="s">Dados de fontes oficiais.</div>
+        <div class="t" data-i18n="cta_strip_title">Use o painel de indicadores para embasar decisões e demonstrar transparência.</div>
+        <div class="s" data-i18n="cta_strip_sub">Dados de fontes oficiais.</div>
       </div>
-      <a class="btn primary" href="/indicadores/">Ir para Indicadores</a>
+      <a class="btn primary" href="/indicadores/" data-i18n="cta_strip_btn">Ir para Indicadores</a>
     </div>
   </div>
 
@@ -601,7 +596,7 @@
     </div>
   </section>
 
-  <!-- ✅ NOVA SECTION: Integração de Modais -->
+  <!-- Integração de Modais -->
   <section>
     <div class="wrap">
       <div class="sectionHead">
@@ -619,7 +614,7 @@
     </div>
   </section>
 
-  <!-- SECTION: Vantagens -->
+  <!-- Vantagens -->
   <section>
     <div class="wrap">
       <div class="sectionHead">
@@ -661,7 +656,7 @@
     </div>
   </section>
 
-  <!-- CONTACT -->
+  <!-- CONTATO -->
   <section>
     <div class="wrap">
       <div class="sectionHead">
@@ -695,7 +690,6 @@
           </div>
         </div>
 
-        <!-- ✅ Troca do QR por Desenvolvido por -->
         <div class="card half">
           <div class="pill">✅ Desenvolvido por:</div>
           <div class="devBox" style="margin-top:10px">
@@ -722,50 +716,93 @@
   <script>
     document.getElementById("y").textContent = new Date().getFullYear();
   </script>
+
   <script>
-  const translations = {
-    pt: {
-      hero_title: "Painel de Indicadores Municipais",
-      hero_subtitle: "Dados oficiais • Atualização via Google Sheets",
-    },
-    en: {
-      hero_title: "Municipal Indicators Dashboard",
-      hero_subtitle: "Official data • Updated via Google Sheets",
-    },
-    zh: {
-      hero_title: "市政指标仪表板",
-      hero_subtitle: "官方数据 • 通过 Google 表格更新",
+    // ===== i18n =====
+    const translations = {
+      pt: {
+        kicker: "🌍 Ecossistema para Novos Investimentos",
+        hero_title: "Campo Verde/MT",
+        hero_lead:
+          "Município com forte base agropecuária e visão de futuro: verticalização, logística integrada e ambiente favorável à industrialização. Destaque para o algodão, grãos e proteína animal — com agenda ativa de atração de investimentos.",
+        cta_indicadores: "📊 Acessar Indicadores",
+        cta_whatsapp: "💬 Falar no WhatsApp",
+        highlight_title: "Campo Verde: Capital do Algodão",
+        highlight_desc: "Números e infraestrutura reforçam o potencial industrial e exportador do município.",
+        card1_title: "🏭 Avanço de Agroindustrialização",
+        card1_desc: "Agregação de valor e expansão da capacidade produtiva local.",
+        card2_title: "🚚 Hub Integrador de Modais",
+        card2_desc: "Conexão rodoviária, ferroviária e aeroviária conectando mercados.",
+        card3_title: "🛡️ Infraestrutura e Qualificação",
+        card3_desc: "Governança e formação para sustentar inovação e competitividade.",
+        cta_strip_title: "Use o painel de indicadores para embasar decisões e demonstrar transparência.",
+        cta_strip_sub: "Dados de fontes oficiais.",
+        cta_strip_btn: "Ir para Indicadores"
+      },
+      en: {
+        kicker: "🌍 Ecosystem for New Investments",
+        hero_title: "Campo Verde/MT",
+        hero_lead:
+          "A municipality with a strong agribusiness base and a forward-looking strategy: verticalization, integrated logistics, and a business-friendly environment for industrial growth. Highlighting cotton, grains, and animal protein—with an active investment attraction agenda.",
+        cta_indicadores: "📊 Open Indicators",
+        cta_whatsapp: "💬 Chat on WhatsApp",
+        highlight_title: "Campo Verde: Cotton Capital",
+        highlight_desc: "Numbers and infrastructure reinforce the municipality’s industrial and export potential.",
+        card1_title: "🏭 Advancing agro-industrialization",
+        card1_desc: "Value-added production and expansion of local capacity.",
+        card2_title: "🚚 Integrated logistics hub",
+        card2_desc: "Road, rail, and air connections linking markets.",
+        card3_title: "🛡️ Infrastructure & workforce",
+        card3_desc: "Governance and skills development to sustain innovation and competitiveness.",
+        cta_strip_title: "Use the indicators dashboard to support decisions and enhance transparency.",
+        cta_strip_sub: "Official-source data.",
+        cta_strip_btn: "Go to Indicators"
+      },
+      zh: {
+        kicker: "🌍 新投资生态系统",
+        hero_title: "Campo Verde/MT",
+        hero_lead:
+          "该市以农业与农产品加工为基础，面向未来：推进产业链延伸、综合物流体系建设，并营造有利于工业化发展的营商环境。棉花、谷物和动物蛋白优势突出，并积极开展投资促进工作。",
+        cta_indicadores: "📊 查看指标",
+        cta_whatsapp: "💬 WhatsApp 咨询",
+        highlight_title: "Campo Verde：棉花之都",
+        highlight_desc: "数据与基础设施凸显本市工业化与出口潜力。",
+        card1_title: "🏭 农业工业化推进",
+        card1_desc: "提升附加值并扩大本地产能。",
+        card2_title: "🚚 综合物流枢纽",
+        card2_desc: "公路、铁路与航空通道联通市场。",
+        card3_title: "🛡️ 基础设施与人才",
+        card3_desc: "以治理与技能培养支撑创新与竞争力。",
+        cta_strip_title: "使用指标面板支撑决策并提升透明度。",
+        cta_strip_sub: "官方来源数据。",
+        cta_strip_btn: "进入指标面板"
+      }
+    };
+
+    function applyLanguage(lang){
+      const dict = translations[lang] || translations.pt;
+
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if (dict[key]) el.textContent = dict[key];
+      });
+
+      localStorage.setItem("lang", lang);
+      document.documentElement.lang = (lang === "zh") ? "zh-Hans" : lang;
     }
-  };
 
-  function applyLanguage(lang){
-    const dict = translations[lang] || translations.pt;
+    document.addEventListener("DOMContentLoaded", () => {
+      // binds
+      document.querySelectorAll(".lang-btn").forEach(btn => {
+        btn.addEventListener("click", () => applyLanguage(btn.dataset.lang));
+      });
 
-    document.querySelectorAll("[data-i18n]").forEach(el => {
-      const key = el.getAttribute("data-i18n");
-      if (dict[key]) el.textContent = dict[key];
+      const saved = localStorage.getItem("lang");
+      const browser = (navigator.language || "pt").toLowerCase();
+      const initial = saved || (browser.startsWith("zh") ? "zh" : browser.startsWith("en") ? "en" : "pt");
+      applyLanguage(initial);
     });
-
-    localStorage.setItem("lang", lang);
-    document.documentElement.lang = (lang === "zh") ? "zh-Hans" : lang;
-  }
-
-  // clique nas bandeiras
-  document.addEventListener("click", (e) => {
-    const btn = e.target.closest(".lang-btn");
-    if (!btn) return;
-    applyLanguage(btn.dataset.lang);
-  });
-
-  // idioma inicial
-  const saved = localStorage.getItem("lang");
-  const browser = (navigator.language || "pt").toLowerCase();
-  const initial =
-    saved || (browser.startsWith("zh") ? "zh" : browser.startsWith("en") ? "en" : "pt");
-
-  applyLanguage(initial);
-</script>
+  </script>
 
 </body>
 </html>
-
