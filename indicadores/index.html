@@ -700,6 +700,44 @@
           fill: false
         };
       });
+// ======== NOVA paleta para ranking (sem vermelho) ========
+const RANKING_COLORS = [
+  "#1f6f3d", // verde institucional
+  "#2e8b57",
+  "#22c55e",
+  "#a4c639",
+  "#f5c542", // amarelo
+  "#f59e0b", // laranja
+  "#3b82f6", // azul
+  "#6366f1", // índigo
+  "#14b8a6", // teal
+  "#8b5cf6", // roxo
+  "#94a3b8"  // cinza
+];
+
+function rankingColors(n){
+  return Array.from({length:n}, (_,i)=>RANKING_COLORS[i % RANKING_COLORS.length]);
+}
+// ======== Plugin: texto no centro do doughnut ========
+const CenterTextPlugin = {
+  id: "centerText",
+  afterDraw(chart, args, opts) {
+    if (!opts || !opts.text) return;
+    const { ctx, chartArea } = chart;
+    if (!chartArea) return;
+
+    const x = (chartArea.left + chartArea.right) / 2;
+    const y = (chartArea.top + chartArea.bottom) / 2;
+
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = opts.color || "#0b2a16";
+    ctx.font = `800 ${opts.size || 14}px "Open Sans", system-ui, sans-serif`;
+    ctx.fillText(opts.text, x, y);
+    ctx.restore();
+  }
+};
 
       return { labels, datasets };
     }
@@ -790,68 +828,72 @@
           datalabels = { display: false };
         }
 
-      } else if (chartMode === "pie_rank") {
-        type = "pie";
-        // pizza: queremos somente % nas fatias (sem nomes)
-        // mantém legenda (nomes) para não perder identificação
-        legendDisplay = true;
+     } else if (chartMode === "pie_rank") {
+  // ✅ vira doughnut (mais “cara de ranking”)
+  type = "doughnut";
 
-        // garantir 1 dataset
-        const ds0 = parsed.datasets[0] || { data: [] };
-        const n = (ds0.data || []).length;
+  // ✅ sem nomes visíveis (nem legenda), só % nas fatias
+  legendDisplay = false;
 
-        parsed.datasets = [{
-          ...ds0,
-          backgroundColor: colorsAlternating(n, false),
-          borderColor: "#ffffff",
-          borderWidth: 2
-        }];
+  // garantir 1 dataset
+  const ds0 = parsed.datasets[0] || { data: [] };
+  const n = (ds0.data || []).length;
 
-        // ajustar tooltip para pie
-        options.plugins.tooltip = {
-          callbacks: {
-            label: (ctx) => {
-              const label = ctx.label || "";
-              const value = ctx.parsed;
-              const dataArr = ctx.dataset.data || [];
-              const sum = dataArr.reduce((a,b)=>a + (Number(b)||0), 0);
-              const pct = sum ? (value/sum*100) : 0;
-              const vFmt = String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-              return `${label}: ${vFmt} (${pct.toFixed(1)}%)`;
-            }
-          }
-        };
+  const bg = rankingColors(n);
 
-        // datalabels somente % (sem nome)
-        datalabels = {
-          display: true,
-          color: "#ffffff",
-          font: { weight: "800", size: 12 },
-          formatter: (value, ctx) => {
-            const dataArr = ctx.chart.data.datasets[0].data || [];
-            const sum = dataArr.reduce((a,b)=>a + (Number(b)||0), 0);
-            if (!sum) return "";
-            const pct = (Number(value)||0) / sum * 100;
-            return pct >= 3 ? `${pct.toFixed(1)}%` : ""; // esconde fatias muito pequenas
-          }
-        };
+  parsed.datasets = [{
+    ...ds0,
+    backgroundColor: bg,
+    borderColor: "#ffffff",
+    borderWidth: 2,
 
-        // pie não usa scales
-        delete options.scales;
-        options.plugins.legend.position = "top";
-      } else {
-        // line padrão
-        type = "line";
-        legendDisplay = true;
-        datalabels = { display: false };
+    // ✅ destaque visual no 1º item do ranking (primeira fatia)
+    // se sua planilha já vem ordenada do maior para o menor, isso funciona perfeito
+    offset: Array.from({length:n}, (_,i)=> i === 0 ? 10 : 0)
+  }];
+
+  // tooltip: mostra cidade + valor + %
+  options.plugins.tooltip = {
+    callbacks: {
+      label: (ctx) => {
+        const label = ctx.label || "";
+        const value = Number(ctx.parsed) || 0;
+        const dataArr = ctx.dataset.data || [];
+        const sum = dataArr.reduce((a,b)=>a + (Number(b)||0), 0);
+        const pct = sum ? (value/sum*100) : 0;
+        const vFmt = value.toLocaleString("pt-BR");
+        return `${label}: ${vFmt} (${pct.toFixed(1)}%)`;
       }
-
-      options.plugins.legend.display = legendDisplay;
-      options.plugins.datalabels = datalabels;
-
-      const chart = new Chart(ctx, { type, data: parsed, options });
-      chartInstances.set(canvasId, chart);
     }
+  };
+
+  // datalabels: somente % (sem nome)
+  datalabels = {
+    display: true,
+    color: "#ffffff",
+    font: { weight: "800", size: 12 },
+    formatter: (value, ctx) => {
+      const dataArr = ctx.chart.data.datasets[0].data || [];
+      const sum = dataArr.reduce((a,b)=>a + (Number(b)||0), 0);
+      if (!sum) return "";
+      const pct = (Number(value)||0) / sum * 100;
+
+      // esconde fatias muito pequenas
+      return pct >= 3 ? `${pct.toFixed(1)}%` : "";
+    }
+  };
+
+  // doughnut não usa scales
+  delete options.scales;
+
+  // aparência “SaaS”: anel + centro escrito
+  options.cutout = "58%";
+
+  // ativa plugin do texto central
+  Chart.register(CenterTextPlugin);
+  options.plugins.centerText = { text: "RANKING", size: 14, color: "#0b2a16" };
+}
+
 
     // ========= CSV LOADER =========
     function loadCsvToChart({ gid, canvasId, chartMode, onError, onMeta }){
