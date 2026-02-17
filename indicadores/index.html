@@ -518,564 +518,530 @@
     </div>
   </footer>
 
-  <script>
-    // ========= ERROR GUARD =========
-    function showFatal(msg){
-      const box = document.getElementById("debugBox");
-      if (!box) return;
-      box.style.display = "block";
-      box.textContent = msg;
-    }
-    window.addEventListener("error", (e) => {
-      showFatal("Erro JavaScript:\n" + (e?.message || String(e)));
+ <script>
+  // ========= ERROR GUARD =========
+  function showFatal(msg){
+    const box = document.getElementById("debugBox");
+    if (!box) return;
+    box.style.display = "block";
+    box.textContent = msg;
+  }
+  window.addEventListener("error", (e) => {
+    showFatal("Erro JavaScript:\n" + (e?.message || String(e)));
+  });
+  window.addEventListener("unhandledrejection", (e) => {
+    showFatal("Promise não tratada:\n" + (e?.reason?.message || String(e?.reason || e)));
+  });
+
+  // ========= CONFIG =========
+  // (esta página está em /indicadores/ e os SVGs na raiz)
+  const LOGO_PREFEITURA_URL = "../logo-prefeitura.svg";
+  const LOGO_SECRETARIA_URL = "../logo-secretaria.svg";
+
+  const SPREADSHEET_ID = "1r_mJ3kj-yEqRf5z-Lahj80EkE_nUW9bNCJS5I9_I_Zw";
+  function csvUrlFromGid(gid){
+    return `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${gid}`;
+  }
+
+  // ========= SITE MAP =========
+  const SITE = [
+    {
+      key: "empregabilidade",
+      label: "Empregabilidade",
+      title: "Empregabilidade",
+      subtitle: "Indicadores do mercado de trabalho e CAGED.",
+      items: [
+        { title: "CAGED - Movimentação de Empregos", gid: "1787329921", badge: "CAGED", chart: "line" },
+        { title: "POSTOS DE TRABALHO CAGED", gid: "1538037155", badge: "CAGED", chart: "bar" },
+        { title: "SALDO ANUAL CAGED", gid: "1664529561", badge: "CAGED", chart: "line" },
+        { title: "TRABALHADORES POR SETOR CAGED", gid: "667989355", badge: "CAGED", chart: "bar" },
+        { title: "ESTOQUE TRABALHADORES CAGED", gid: "183085482", badge: "CAGED", chart: "line" },
+      ],
+    },
+    {
+      key: "agronegocio",
+      label: "Agronegócio",
+      title: "Agronegócio",
+      subtitle: "Produção e indicadores agrícolas.",
+      items: [
+        { title: "SOJA", gid: "1259725950", badge: "AGRO", chart: "line" },
+        { title: "MILHO", gid: "529160465", badge: "AGRO", chart: "line" },
+        { title: "ALGODÃO", gid: "1996427760", badge: "AGRO", chart: "line" },
+        { title: "PLUMA", gid: "1559046357", badge: "AGRO", chart: "line" },
+        { title: "CAROÇO", gid: "971630155", badge: "AGRO", chart: "line" },
+      ],
+    },
+    {
+      key: "economia",
+      label: "Economia",
+      title: "Economia",
+      subtitle: "Indicadores econômicos, PIB, exportações e empresas.",
+      items: [
+        { title: "PIB", gid: "550123213", badge: "ECONOMIA", chart: "line" },
+        { title: "PIB PERCAPITA", gid: "691433788", badge: "ECONOMIA", chart: "line" },
+        { title: "EXPORTAÇÕES", gid: "1610374354", badge: "ECONOMIA", chart: "line" },
+        { title: "EMPRESAS", gid: "511808654", badge: "ECONOMIA", chart: "line" },
+        { title: "POPULAÇÃO", gid: "135525471", badge: "SOCIAL", chart: "line" },
+        { title: "IDEB", gid: "1813118854", badge: "SOCIAL", chart: "line" },
+        { title: "IDH", gid: "347730474", badge: "SOCIAL", chart: "line" },
+      ],
+    },
+    {
+      key: "producao_regional",
+      label: "Produção Regional",
+      title: "Produção Regional",
+      subtitle: "Originação e participação regional — região (colunas) e ranking (pizza).",
+      items: [
+        { title: "SOJA • Região (Produção)",    gid: "26475475",   badge: "REGIÃO",  chart: "region_cols" },
+        { title: "MILHO • Região (Produção)",   gid: "104557507",  badge: "REGIÃO",  chart: "region_cols" },
+        { title: "ALGODÃO • Região (Produção)", gid: "307631985",  badge: "REGIÃO",  chart: "region_cols" },
+
+        { title: "RANKING • Soja",              gid: "1395536313", badge: "RANKING", chart: "pie_rank" },
+        { title: "RANKING • Milho",             gid: "1213250554", badge: "RANKING", chart: "pie_rank" },
+        { title: "RANKING • Algodão",           gid: "743387491",  badge: "RANKING", chart: "pie_rank" },
+      ],
+    },
+    {
+      key: "contato",
+      label: "Contato",
+      title: "Contato",
+      subtitle: "Canais oficiais para informações e atendimento.",
+      items: [],
+    },
+  ];
+
+  // ========= UI =========
+  function applyLogos(){
+    const pref = document.getElementById("logoPrefeitura");
+    const sec  = document.getElementById("logoSecretaria");
+    if (pref) pref.src = LOGO_PREFEITURA_URL;
+    if (sec)  sec.src  = LOGO_SECRETARIA_URL;
+  }
+
+  function renderTabs(activeKey){
+    const tabs = document.getElementById("tabs");
+    tabs.innerHTML = "";
+    SITE.forEach(cat => {
+      const btn = document.createElement("button");
+      btn.className = "tab" + (cat.key === activeKey ? " active" : "");
+      btn.textContent = cat.label;
+      btn.onclick = () => location.hash = `#${cat.key}`;
+      tabs.appendChild(btn);
+    });
+  }
+
+  // ========= DATA / PARSING =========
+  const chartInstances = new Map();
+
+  function normalizeKey(k){
+    return String(k || "").replace(/\uFEFF/g,"").replace(/\u00A0/g," ").trim();
+  }
+
+  function toNumber(v){
+    if (v === null || v === undefined) return NaN;
+    if (typeof v === "number") return Number.isFinite(v) ? v : NaN;
+
+    let s = String(v);
+    s = s.replace(/\uFEFF/g, "").replace(/\u00A0/g, " ").trim();
+    s = s.replace(/\u2212/g, "-");
+    s = s.replace(/[^\d,\.\-]/g, "");
+    if (!s || s === "-") return NaN;
+
+    s = s.replace(/\.(?=\d{3}(\D|$))/g, "");
+    s = s.replace(",", ".");
+    const n = Number(s);
+    return Number.isFinite(n) ? n : NaN;
+  }
+
+  function buildDatasets(rows){
+    if (!rows.length) return { labels: [], datasets: [] };
+
+    const rawKeys = Object.keys(rows[0] || {});
+    const keys = rawKeys.map(normalizeKey).filter(Boolean);
+
+    const normToOriginal = {};
+    rawKeys.forEach(orig => {
+      const norm = normalizeKey(orig);
+      if (norm && !normToOriginal[norm]) normToOriginal[norm] = orig;
     });
 
-    // ========= CONFIG =========
-    // (esta página está em /indicadores/ e os SVGs na raiz)
-    const LOGO_PREFEITURA_URL = "../logo-prefeitura.svg";
-    const LOGO_SECRETARIA_URL = "../logo-secretaria.svg";
+    let yearKeyNorm = keys.find(k => k.toUpperCase() === "ANO") || keys[0];
+    const yearKeyOrig = normToOriginal[yearKeyNorm] || rawKeys[0];
 
-    const SPREADSHEET_ID = "1r_mJ3kj-yEqRf5z-Lahj80EkE_nUW9bNCJS5I9_I_Zw";
-    function csvUrlFromGid(gid){
-      return `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${gid}`;
-    }
+    const valueKeyNorms = keys.filter(k => k !== yearKeyNorm);
+    const valueKeyOrigs = valueKeyNorms.map(k => normToOriginal[k]).filter(Boolean);
 
-    // ========= SITE MAP =========
-    const SITE = [
-      {
-        key: "empregabilidade",
-        label: "Empregabilidade",
-        title: "Empregabilidade",
-        subtitle: "Indicadores do mercado de trabalho e CAGED.",
-        items: [
-          { title: "CAGED - Movimentação de Empregos", gid: "1787329921", badge: "CAGED", chart: "line" },
-          { title: "POSTOS DE TRABALHO CAGED", gid: "1538037155", badge: "CAGED", chart: "bar" },
-          { title: "SALDO ANUAL CAGED", gid: "1664529561", badge: "CAGED", chart: "line" },
-          { title: "TRABALHADORES POR SETOR CAGED", gid: "667989355", badge: "CAGED", chart: "bar" },
-          { title: "ESTOQUE TRABALHADORES CAGED", gid: "183085482", badge: "CAGED", chart: "line" },
-        ],
-      },
-      {
-        key: "agronegocio",
-        label: "Agronegócio",
-        title: "Agronegócio",
-        subtitle: "Produção e indicadores agrícolas.",
-        items: [
-          { title: "SOJA", gid: "1259725950", badge: "AGRO", chart: "line" },
-          { title: "MILHO", gid: "529160465", badge: "AGRO", chart: "line" },
-          { title: "ALGODÃO", gid: "1996427760", badge: "AGRO", chart: "line" },
-          { title: "PLUMA", gid: "1559046357", badge: "AGRO", chart: "line" },
-          { title: "CAROÇO", gid: "971630155", badge: "AGRO", chart: "line" },
-        ],
-      },
-      {
-        key: "economia",
-        label: "Economia",
-        title: "Economia",
-        subtitle: "Indicadores econômicos, PIB, exportações e empresas.",
-        items: [
-          { title: "PIB", gid: "550123213", badge: "ECONOMIA", chart: "line" },
-          { title: "PIB PERCAPITA", gid: "691433788", badge: "ECONOMIA", chart: "line" },
-          { title: "EXPORTAÇÕES", gid: "1610374354", badge: "ECONOMIA", chart: "line" },
-          { title: "EMPRESAS", gid: "511808654", badge: "ECONOMIA", chart: "line" },
-          { title: "POPULAÇÃO", gid: "135525471", badge: "SOCIAL", chart: "line" },
-          { title: "IDEB", gid: "1813118854", badge: "SOCIAL", chart: "line" },
-          { title: "IDH", gid: "347730474", badge: "SOCIAL", chart: "line" },
-        ],
-      },
-      {
-        key: "producao_regional",
-        label: "Produção Regional",
-        title: "Produção Regional",
-        subtitle: "Originação e participação regional — região (colunas) e ranking (pizza).",
-        items: [
-          { title: "SOJA • Região (Produção)",   gid: "26475475",   badge: "REGIÃO",  chart: "region_cols" },
-          { title: "MILHO • Região (Produção)",  gid: "104557507",  badge: "REGIÃO",  chart: "region_cols" },
-          { title: "ALGODÃO • Região (Produção)",gid: "307631985",  badge: "REGIÃO",  chart: "region_cols" },
+    const clean = rows.filter(r => {
+      const y = r?.[yearKeyOrig];
+      return String(y ?? "").replace(/\u00A0/g," ").trim() !== "";
+    });
 
-          { title: "RANKING • Soja",             gid: "1395536313", badge: "RANKING", chart: "pie_rank" },
-          { title: "RANKING • Milho",            gid: "1213250554", badge: "RANKING", chart: "pie_rank" },
-          { title: "RANKING • Algodão",          gid: "743387491",  badge: "RANKING", chart: "pie_rank" },
-        ],
-      },
-      {
-        key: "contato",
-        label: "Contato",
-        title: "Contato",
-        subtitle: "Canais oficiais para informações e atendimento.",
-        items: [],
-      },
-    ];
+    const labels = clean.map(r => String(r[yearKeyOrig]).replace(/\u00A0/g," ").trim());
 
-    // ========= UI =========
-    function applyLogos(){
-      const pref = document.getElementById("logoPrefeitura");
-      const sec  = document.getElementById("logoSecretaria");
-      if (pref) pref.src = LOGO_PREFEITURA_URL;
-      if (sec)  sec.src  = LOGO_SECRETARIA_URL;
-    }
+    // paleta base (sem vermelho) para gráficos “normais”
+    const basePalette = ["#14532d", "#22c55e", "#0f766e", "#15803d", "#4d7c0f", "#0ea5a4", "#166534"];
 
-    function renderTabs(activeKey){
-      const tabs = document.getElementById("tabs");
-      tabs.innerHTML = "";
-      SITE.forEach(cat => {
-        const btn = document.createElement("button");
-        btn.className = "tab" + (cat.key === activeKey ? " active" : "");
-        btn.textContent = cat.label;
-        btn.onclick = () => location.hash = `#${cat.key}`;
-        tabs.appendChild(btn);
-      });
-    }
-
-    // ========= DATA / PARSING =========
-    const chartInstances = new Map();
-
-    function normalizeKey(k){
-      return String(k || "").replace(/\uFEFF/g,"").replace(/\u00A0/g," ").trim();
-    }
-
-    function toNumber(v){
-      if (v === null || v === undefined) return NaN;
-      if (typeof v === "number") return Number.isFinite(v) ? v : NaN;
-
-      let s = String(v);
-      s = s.replace(/\uFEFF/g, "").replace(/\u00A0/g, " ").trim();
-      s = s.replace(/\u2212/g, "-");
-      s = s.replace(/[^\d,\.\-]/g, "");
-      if (!s || s === "-") return NaN;
-
-      s = s.replace(/\.(?=\d{3}(\D|$))/g, "");
-      s = s.replace(",", ".");
-      const n = Number(s);
-      return Number.isFinite(n) ? n : NaN;
-    }
-
-    function buildDatasets(rows){
-      if (!rows.length) return { labels: [], datasets: [] };
-
-      const rawKeys = Object.keys(rows[0] || {});
-      const keys = rawKeys.map(normalizeKey).filter(Boolean);
-
-      const normToOriginal = {};
-      rawKeys.forEach(orig => {
-        const norm = normalizeKey(orig);
-        if (norm && !normToOriginal[norm]) normToOriginal[norm] = orig;
+    const datasets = valueKeyOrigs.map((origKey, idx) => {
+      const labelNorm = valueKeyNorms[idx] || normalizeKey(origKey);
+      const color = basePalette[idx % basePalette.length];
+      const data = clean.map(r => {
+        const n = toNumber(r[origKey]);
+        return Number.isFinite(n) ? n : null;
       });
 
-      let yearKeyNorm = keys.find(k => k.toUpperCase() === "ANO") || keys[0];
-      const yearKeyOrig = normToOriginal[yearKeyNorm] || rawKeys[0];
+      return {
+        label: labelNorm,
+        data,
+        borderColor: color,
+        backgroundColor: color,
+        pointBackgroundColor: color,
+        pointBorderColor: color,
+        borderWidth: 3,
+        tension: 0.25,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        fill: false
+      };
+    });
 
-      const valueKeyNorms = keys.filter(k => k !== yearKeyNorm);
-      const valueKeyOrigs = valueKeyNorms.map(k => normToOriginal[k]).filter(Boolean);
+    return { labels, datasets };
+  }
 
-      const clean = rows.filter(r => {
-        const y = r?.[yearKeyOrig];
-        return String(y ?? "").replace(/\u00A0/g," ").trim() !== "";
-      });
+  // ========= HELPERS: COLORS =========
+  const altStrong = [
+    getComputedStyle(document.documentElement).getPropertyValue('--cinza').trim() || '#6b7280',
+    getComputedStyle(document.documentElement).getPropertyValue('--verde').trim() || '#166534',
+    getComputedStyle(document.documentElement).getPropertyValue('--laranja2').trim() || '#d97706'
+  ];
 
-      const labels = clean.map(r => String(r[yearKeyOrig]).replace(/\u00A0/g," ").trim());
+  function colorsAlternating(n){
+    return Array.from({length:n}, (_,i)=>altStrong[i%altStrong.length]);
+  }
 
-      // paleta base (sem vermelho) para gráficos “normais”
-      const basePalette = ["#14532d", "#22c55e", "#0f766e", "#15803d", "#4d7c0f", "#0ea5a4", "#166534"];
+  // ✅ Ranking colors (colorido, sem vermelho)
+  const RANKING_COLORS = [
+    "#1f6f3d", "#2e8b57", "#22c55e", "#a4c639",
+    "#f5c542", "#f59e0b", "#3b82f6", "#6366f1",
+    "#14b8a6", "#8b5cf6", "#94a3b8"
+  ];
+  function rankingColors(n){
+    return Array.from({length:n}, (_,i)=>RANKING_COLORS[i % RANKING_COLORS.length]);
+  }
 
-      const datasets = valueKeyOrigs.map((origKey, idx) => {
-        const labelNorm = valueKeyNorms[idx] || normalizeKey(origKey);
-        const color = basePalette[idx % basePalette.length];
-        const data = clean.map(r => {
-          const n = toNumber(r[origKey]);
-          return Number.isFinite(n) ? n : null;
+  // ========= PLUGINS (registrar 1x só) =========
+  let pluginsRegistered = false;
+  function ensurePlugins(){
+    if (pluginsRegistered) return;
+    if (window.ChartDataLabels) Chart.register(ChartDataLabels);
+    pluginsRegistered = true;
+  }
+
+  // ========= CHART RENDER =========
+  function renderChartInto(canvasId, parsed, chartMode){
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+
+    if (chartInstances.has(canvasId)){
+      chartInstances.get(canvasId).destroy();
+      chartInstances.delete(canvasId);
+    }
+
+    ensurePlugins();
+
+    let type = "line";
+
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "top", display: true },
+        tooltip: { mode: "index", intersect: false },
+        datalabels: { display: false }
+      },
+      interaction: { mode: "index", intersect: false },
+      scales: {
+        x: { grid: { display: false } },
+        y: { beginAtZero: false }
+      }
+    };
+
+    // ===== REGION COLS =====
+    if (chartMode === "bar" || chartMode === "region_cols") {
+      type = "bar";
+
+      // barras: borda menor
+      parsed.datasets = parsed.datasets.map(ds => ({ ...ds, borderWidth: 1 }));
+
+      if (chartMode === "region_cols") {
+        // ✅ remover legenda “Produção (ton)” (você pediu)
+        options.plugins.legend.display = false;
+
+        // cores alternadas fortes por coluna
+        parsed.datasets = parsed.datasets.map(ds => {
+          const n = (ds.data || []).length;
+          const cols = colorsAlternating(n);
+          return {
+            ...ds,
+            backgroundColor: cols,
+            borderColor: cols,
+          };
         });
 
-        return {
-          label: labelNorm,
-          data,
-          borderColor: color,
-          backgroundColor: color,
-          pointBackgroundColor: color,
-          pointBorderColor: color,
-          borderWidth: 3,
-          tension: 0.25,
-          pointRadius: 3,
-          pointHoverRadius: 5,
-          fill: false
+        // ✅ rótulo dos valores
+        options.plugins.datalabels = {
+          display: true,
+          anchor: "end",
+          align: "end",
+          offset: 2,
+          color: "#0b2a16",
+          font: { weight: "800", size: 12 },
+          formatter: (v) => (v == null) ? "" : Number(v).toLocaleString("pt-BR")
         };
-      });
-// ======== NOVA paleta para ranking (sem vermelho) ========
-const RANKING_COLORS = [
-  "#1f6f3d", // verde institucional
-  "#2e8b57",
-  "#22c55e",
-  "#a4c639",
-  "#f5c542", // amarelo
-  "#f59e0b", // laranja
-  "#3b82f6", // azul
-  "#6366f1", // índigo
-  "#14b8a6", // teal
-  "#8b5cf6", // roxo
-  "#94a3b8"  // cinza
-];
-
-function rankingColors(n){
-  return Array.from({length:n}, (_,i)=>RANKING_COLORS[i % RANKING_COLORS.length]);
-}
-// ======== Plugin: texto no centro do doughnut ========
-const CenterTextPlugin = {
-  id: "centerText",
-  afterDraw(chart, args, opts) {
-    if (!opts || !opts.text) return;
-    const { ctx, chartArea } = chart;
-    if (!chartArea) return;
-
-    const x = (chartArea.left + chartArea.right) / 2;
-    const y = (chartArea.top + chartArea.bottom) / 2;
-
-    ctx.save();
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = opts.color || "#0b2a16";
-    ctx.font = `800 ${opts.size || 14}px "Open Sans", system-ui, sans-serif`;
-    ctx.fillText(opts.text, x, y);
-    ctx.restore();
-  }
-};
-
-      return { labels, datasets };
-    }
-
-    // ========= HELPERS: COLORS FOR REGIONAL/RANK =========
-    const altStrong = [getComputedStyle(document.documentElement).getPropertyValue('--cinza').trim() || '#6b7280',
-                       getComputedStyle(document.documentElement).getPropertyValue('--verde').trim() || '#166534',
-                       getComputedStyle(document.documentElement).getPropertyValue('--laranja2').trim() || '#d97706'];
-
-    const altSoft = [getComputedStyle(document.documentElement).getPropertyValue('--cinza2').trim() || '#9ca3af',
-                     '#22c55e',
-                     getComputedStyle(document.documentElement).getPropertyValue('--laranja').trim() || '#f59e0b'];
-
-    function colorsAlternating(n, strong=true){
-      const base = strong ? altStrong : altSoft;
-      return Array.from({length:n}, (_,i)=>base[i%base.length]);
-    }
-
-    // ========= CHART RENDER =========
-    function renderChartInto(canvasId, parsed, chartMode){
-      const canvas = document.getElementById(canvasId);
-      if (!canvas) return;
-      const ctx = canvas.getContext("2d");
-
-      if (chartInstances.has(canvasId)){
-        chartInstances.get(canvasId).destroy();
-        chartInstances.delete(canvasId);
       }
 
-      // registrar plugin de datalabels
-      if (window.ChartDataLabels) {
-        Chart.register(ChartDataLabels);
-      }
+    // ===== PIE RANK =====
+    } else if (chartMode === "pie_rank") {
+      type = "pie";
 
-      // default
-      let type = "line";
-      let legendDisplay = true;
-      let datalabels = { display: false };
+      // ✅ pizza: sem legenda e sem nomes (só %)
+      options.plugins.legend.display = false;
 
-      // opções base
-      const options = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: "top", display: true },
-          tooltip: { mode: "index", intersect: false },
-          datalabels: { display: false }
-        },
-        interaction: { mode: "index", intersect: false },
-        scales: {
-          x: { grid: { display: false } },
-          y: { beginAtZero: false }
+      // pie: interação melhor assim
+      options.interaction = { mode: "nearest", intersect: true };
+
+      // pie não usa scales
+      delete options.scales;
+
+      // 1 dataset
+      const ds0 = parsed.datasets[0] || { data: [] };
+      const n = (ds0.data || []).length;
+
+      parsed.datasets = [{
+        ...ds0,
+        backgroundColor: rankingColors(n),
+        borderColor: "#ffffff",
+        borderWidth: 2
+      }];
+
+      // tooltip mantém cidade + valor + %
+      options.plugins.tooltip = {
+        callbacks: {
+          label: (ctx) => {
+            const label = ctx.label || "";
+            const value = Number(ctx.parsed) || 0;
+            const dataArr = ctx.dataset.data || [];
+            const sum = dataArr.reduce((a,b)=>a + (Number(b)||0), 0);
+            const pct = sum ? (value/sum*100) : 0;
+            return `${label}: ${value.toLocaleString("pt-BR")} (${pct.toFixed(1)}%)`;
+          }
         }
       };
 
-      // ===== modos especiais =====
-      if (chartMode === "bar" || chartMode === "region_cols") {
-        type = "bar";
-
-        // barras: borda menor
-        parsed.datasets = parsed.datasets.map(ds => ({ ...ds, borderWidth: 1 }));
-
-        // se for regional: legenda OFF + cores alternadas fortes + rótulo valor ON
-        if (chartMode === "region_cols") {
-          legendDisplay = false;
-
-          // normalmente vem 1 dataset
-          parsed.datasets = parsed.datasets.map(ds => {
-            const n = (ds.data || []).length;
-            return {
-              ...ds,
-              backgroundColor: colorsAlternating(n, true),
-              borderColor: colorsAlternating(n, true),
-            };
-          });
-
-          datalabels = {
-            display: true,
-            anchor: "end",
-            align: "end",
-            offset: 2,
-            color: "#0b2a16",
-            font: { weight: "800", size: 12 },
-            formatter: (v) => (v === null || v === undefined) ? "" : String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-          };
-        } else {
-          // barras normais: pode manter legenda
-          datalabels = { display: false };
+      // datalabels: só %
+      options.plugins.datalabels = {
+        display: true,
+        color: "#ffffff",
+        font: { weight: "800", size: 12 },
+        formatter: (value, ctx) => {
+          const dataArr = ctx.chart.data.datasets[0].data || [];
+          const sum = dataArr.reduce((a,b)=>a + (Number(b)||0), 0);
+          if (!sum) return "";
+          const pct = (Number(value)||0) / sum * 100;
+          return pct >= 3 ? `${pct.toFixed(1)}%` : "";
         }
+      };
 
-     } else if (chartMode === "pie_rank") {
-  // ✅ vira doughnut (mais “cara de ranking”)
-  type = "doughnut";
-
-  // ✅ sem nomes visíveis (nem legenda), só % nas fatias
-  legendDisplay = false;
-
-  // garantir 1 dataset
-  const ds0 = parsed.datasets[0] || { data: [] };
-  const n = (ds0.data || []).length;
-
-  const bg = rankingColors(n);
-
-  parsed.datasets = [{
-    ...ds0,
-    backgroundColor: bg,
-    borderColor: "#ffffff",
-    borderWidth: 2,
-
-    // ✅ destaque visual no 1º item do ranking (primeira fatia)
-    // se sua planilha já vem ordenada do maior para o menor, isso funciona perfeito
-    offset: Array.from({length:n}, (_,i)=> i === 0 ? 10 : 0)
-  }];
-
-  // tooltip: mostra cidade + valor + %
-  options.plugins.tooltip = {
-    callbacks: {
-      label: (ctx) => {
-        const label = ctx.label || "";
-        const value = Number(ctx.parsed) || 0;
-        const dataArr = ctx.dataset.data || [];
-        const sum = dataArr.reduce((a,b)=>a + (Number(b)||0), 0);
-        const pct = sum ? (value/sum*100) : 0;
-        const vFmt = value.toLocaleString("pt-BR");
-        return `${label}: ${vFmt} (${pct.toFixed(1)}%)`;
-      }
-    }
-  };
-
-  // datalabels: somente % (sem nome)
-  datalabels = {
-    display: true,
-    color: "#ffffff",
-    font: { weight: "800", size: 12 },
-    formatter: (value, ctx) => {
-      const dataArr = ctx.chart.data.datasets[0].data || [];
-      const sum = dataArr.reduce((a,b)=>a + (Number(b)||0), 0);
-      if (!sum) return "";
-      const pct = (Number(value)||0) / sum * 100;
-
-      // esconde fatias muito pequenas
-      return pct >= 3 ? `${pct.toFixed(1)}%` : "";
-    }
-  };
-
-  // doughnut não usa scales
-  delete options.scales;
-
-  // aparência “SaaS”: anel + centro escrito
-  options.cutout = "58%";
-
-  // ativa plugin do texto central
-  Chart.register(CenterTextPlugin);
-  options.plugins.centerText = { text: "RANKING", size: 14, color: "#0b2a16" };
-}
-
-
-    // ========= CSV LOADER =========
-    function loadCsvToChart({ gid, canvasId, chartMode, onError, onMeta }){
-      if (!gid){
-        onError("GID não configurado para este indicador.");
-        return;
-      }
-
-      const url = csvUrlFromGid(gid);
-
-      fetch(url)
-        .then(res => res.text())
-        .then(text => {
-          const parsedCsv = Papa.parse(text, { header: true, skipEmptyLines: true });
-
-          const rows = (parsedCsv.data || []).filter(Boolean);
-          const cleaned = rows.filter(r =>
-            Object.values(r).some(v => String(v ?? "").replace(/\u00A0/g," ").trim() !== "")
-          );
-
-          const parsed = buildDatasets(cleaned);
-          renderChartInto(canvasId, parsed, chartMode);
-
-          // meta = maior ano numérico
-          const years = parsed.labels
-            .map(x => Number(String(x).trim()))
-            .filter(n => Number.isFinite(n));
-
-          if (years.length && onMeta) onMeta(Math.max(...years));
-        })
-        .catch(err => {
-          onError("Erro ao baixar CSV: " + (err?.message || String(err)));
-        });
+    // ===== LINE DEFAULT =====
+    } else {
+      type = "line";
+      options.plugins.legend.display = true;
+      options.plugins.datalabels.display = false;
     }
 
-    // ========= PAGES =========
-    function renderContato(){
-      const grid = document.getElementById("grid");
-      grid.innerHTML = `
-        <article class="card">
-          <div class="card-head">
-            <div>
-              <h3 class="card-title">Fale com a Secretaria</h3>
-              <div class="subtitle" style="margin-top:6px;">
-                Use os canais abaixo para solicitar informações, atualizações ou suporte.
-              </div>
-            </div>
-            <div class="badge">CONTATO</div>
-          </div>
+    const chart = new Chart(ctx, { type, data: parsed, options });
+    chartInstances.set(canvasId, chart);
+  }
 
-          <div class="contact-grid">
-            <div class="contact-item">
-              <p class="k">📞 Telefone</p>
-              <p class="v">+55 66 3419-2416</p>
-            </div>
+  // ========= CSV LOADER =========
+  function loadCsvToChart({ gid, canvasId, chartMode, onError, onMeta }){
+    if (!gid){
+      onError("GID não configurado para este indicador.");
+      return;
+    }
 
-            <div class="contact-item">
-              <p class="k">💬 WhatsApp</p>
-              <p class="v">
-                <a href="https://wa.me/5566992579266" target="_blank" rel="noreferrer">
-                  +55 66 99257-9266
-                </a>
-              </p>
-            </div>
+    const url = csvUrlFromGid(gid);
 
-            <div class="contact-item">
-              <p class="k">✉️ E-mail</p>
-              <p class="v">henrique.secdesenvolvimento@campoverde.mt.gov.br</p>
-            </div>
+    fetch(url)
+      .then(res => res.text())
+      .then(text => {
+        const parsedCsv = Papa.parse(text, { header: true, skipEmptyLines: true });
 
-            <div class="contact-item">
-              <p class="k">🌐 Site</p>
-              <p class="v">
-                <a href="https://campoverde.mt.gov.br/" target="_blank" rel="noreferrer">
-                  campoverde.mt.gov.br
-                </a>
-              </p>
+        const rows = (parsedCsv.data || []).filter(Boolean);
+        const cleaned = rows.filter(r =>
+          Object.values(r).some(v => String(v ?? "").replace(/\u00A0/g," ").trim() !== "")
+        );
+
+        const parsed = buildDatasets(cleaned);
+        renderChartInto(canvasId, parsed, chartMode);
+
+        const years = parsed.labels
+          .map(x => Number(String(x).trim()))
+          .filter(n => Number.isFinite(n));
+
+        if (years.length && onMeta) onMeta(Math.max(...years));
+      })
+      .catch(err => onError("Erro ao baixar CSV: " + (err?.message || String(err))));
+  }
+
+  // ========= PAGES =========
+  function renderContato(){
+    const grid = document.getElementById("grid");
+    grid.innerHTML = `
+      <article class="card">
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">Fale com a Secretaria</h3>
+            <div class="subtitle" style="margin-top:6px;">
+              Use os canais abaixo para solicitar informações, atualizações ou suporte.
             </div>
           </div>
-        </article>
-      `;
-    }
+          <div class="badge">CONTATO</div>
+        </div>
 
-    function renderCategory(catKey){
-      const cat = SITE.find(c => c.key === catKey) || SITE[0];
-
-      renderTabs(cat.key);
-      document.getElementById("pageTitle").textContent = cat.title;
-      document.getElementById("pageSubtitle").textContent = cat.subtitle;
-
-      const grid = document.getElementById("grid");
-      grid.innerHTML = "";
-
-      if (cat.key === "contato"){
-        renderContato();
-        return;
-      }
-
-      // Produção Regional: inserir card texto “wide” (não espremido)
-      if (cat.key === "producao_regional") {
-        const info = document.createElement("article");
-        info.className = "card";
-        info.innerHTML = `
-          <div class="card-head">
-            <div>
-              <h3 class="card-title">Originação livre e atrativo logístico</h3>
-              <div class="subtitle" style="margin-top:6px;">
-                Posicionamento estratégico para verticalização e investimentos.
-              </div>
-            </div>
-            <div class="badge">DESTAQUE</div>
+        <div class="contact-grid">
+          <div class="contact-item">
+            <p class="k">📞 Telefone</p>
+            <p class="v">+55 66 3419-2416</p>
           </div>
-          <div class="highlight-wide">
-            <p>
-              <strong>Campo Verde</strong> não possui saturação na utilização de suas matérias-primas.
-              Isso significa originação livre de concorrência para verticalização, com forte atrativo logístico
-              pela proximidade das áreas produtivas e corredores de escoação.
+
+          <div class="contact-item">
+            <p class="k">💬 WhatsApp</p>
+            <p class="v">
+              <a href="https://wa.me/5566992579266" target="_blank" rel="noreferrer">
+                +55 66 99257-9266
+              </a>
             </p>
           </div>
-        `;
-        grid.appendChild(info);
-      }
 
-      let maxYear = null;
-      const metaEl = document.getElementById("metaAtualizacao");
-      metaEl.textContent = "Última atualização (ano base): —";
-
-      cat.items.forEach((item, idx) => {
-        const canvasId = `chart_${cat.key}_${idx}`;
-
-        const card = document.createElement("article");
-        card.className = "card";
-        card.innerHTML = `
-          <div class="card-head">
-            <div><h3 class="card-title">${item.title}</h3></div>
-            <div class="badge">${item.badge || "INDICADOR"}</div>
+          <div class="contact-item">
+            <p class="k">✉️ E-mail</p>
+            <p class="v">henrique.secdesenvolvimento@campoverde.mt.gov.br</p>
           </div>
 
-          <div class="canvas-wrap">
-            <canvas id="${canvasId}"></canvas>
-            <div id="${canvasId}_err" class="error"></div>
+          <div class="contact-item">
+            <p class="k">🌐 Site</p>
+            <p class="v">
+              <a href="https://campoverde.mt.gov.br/" target="_blank" rel="noreferrer">
+                campoverde.mt.gov.br
+              </a>
+            </p>
           </div>
-        `;
-        grid.appendChild(card);
+        </div>
+      </article>
+    `;
+  }
 
-        const errBox = document.getElementById(`${canvasId}_err`);
-        const showErr = (msg) => {
-          errBox.style.display = "block";
-          errBox.textContent = msg;
-        };
+  function renderCategory(catKey){
+    const cat = SITE.find(c => c.key === catKey) || SITE[0];
 
-        loadCsvToChart({
-          gid: item.gid,
-          canvasId,
-          chartMode: item.chart || "line",
-          onError: showErr,
-          onMeta: (year) => {
-            if (Number.isFinite(year)) {
-              if (maxYear === null || year > maxYear) maxYear = year;
-              metaEl.textContent = `Última atualização (ano base): ${maxYear}`;
-            }
+    renderTabs(cat.key);
+    document.getElementById("pageTitle").textContent = cat.title;
+    document.getElementById("pageSubtitle").textContent = cat.subtitle;
+
+    const grid = document.getElementById("grid");
+    grid.innerHTML = "";
+
+    if (cat.key === "contato"){
+      renderContato();
+      return;
+    }
+
+    // Produção Regional: inserir card texto
+    if (cat.key === "producao_regional") {
+      const info = document.createElement("article");
+      info.className = "card";
+      info.innerHTML = `
+        <div class="card-head">
+          <div>
+            <h3 class="card-title">Originação livre e atrativo logístico</h3>
+            <div class="subtitle" style="margin-top:6px;">
+              Posicionamento estratégico para verticalização e investimentos.
+            </div>
+          </div>
+          <div class="badge">DESTAQUE</div>
+        </div>
+        <div class="highlight-wide">
+          <p>
+            <strong>Campo Verde</strong> não possui saturação na utilização de suas matérias-primas.
+            Isso significa originação livre de concorrência para verticalização, com forte atrativo logístico
+            pela proximidade das áreas produtivas e corredores de escoação.
+          </p>
+        </div>
+      `;
+      grid.appendChild(info);
+    }
+
+    let maxYear = null;
+    const metaEl = document.getElementById("metaAtualizacao");
+    metaEl.textContent = "Última atualização (ano base): —";
+
+    cat.items.forEach((item, idx) => {
+      const canvasId = `chart_${cat.key}_${idx}`;
+
+      const card = document.createElement("article");
+      card.className = "card";
+      card.innerHTML = `
+        <div class="card-head">
+          <div><h3 class="card-title">${item.title}</h3></div>
+          <div class="badge">${item.badge || "INDICADOR"}</div>
+        </div>
+
+        <div class="canvas-wrap">
+          <canvas id="${canvasId}"></canvas>
+          <div id="${canvasId}_err" class="error"></div>
+        </div>
+      `;
+      grid.appendChild(card);
+
+      const errBox = document.getElementById(`${canvasId}_err`);
+      const showErr = (msg) => {
+        errBox.style.display = "block";
+        errBox.textContent = msg;
+      };
+
+      loadCsvToChart({
+        gid: item.gid,
+        canvasId,
+        chartMode: item.chart || "line",
+        onError: showErr,
+        onMeta: (year) => {
+          if (Number.isFinite(year)) {
+            if (maxYear === null || year > maxYear) maxYear = year;
+            metaEl.textContent = `Última atualização (ano base): ${maxYear}`;
           }
-        });
-      });
-    }
-
-    // ========= INIT =========
-    function getHashKey(){
-      const k = (location.hash || "").replace("#","").trim();
-      return k || SITE[0].key;
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      document.getElementById("anoAtual").textContent = String(new Date().getFullYear());
-
-      applyLogos();
-      renderCategory(getHashKey());
-
-      window.addEventListener("hashchange", () => {
-        renderCategory(getHashKey());
+        }
       });
     });
-  </script>
+  }
+
+  // ========= INIT =========
+  function getHashKey(){
+    const k = (location.hash || "").replace("#","").trim();
+    return k || SITE[0].key;
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("anoAtual").textContent = String(new Date().getFullYear());
+    applyLogos();
+    renderCategory(getHashKey());
+
+    window.addEventListener("hashchange", () => {
+      renderCategory(getHashKey());
+    });
+  });
+</script>
+
 </body>
 </html>
+
