@@ -9,6 +9,22 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  .lang-switch{
+    display:flex; gap:8px; align-items:center;
+  }
+  .lang-btn{
+    border:1px solid rgba(255,255,255,.25);
+    background: rgba(255,255,255,.10);
+    color:#fff;
+    border-radius: 999px;
+    padding: 8px 10px;
+    cursor:pointer;
+    font-size: 16px;
+    line-height: 1;
+  }
+  .lang-btn:hover{ transform: translateY(-1px); }
+</style>
 
   <style>
     :root{
@@ -172,6 +188,9 @@
       padding:8px 12px;border-radius:999px;
       width:fit-content;
     }
+    <h1 data-i18n="hero_title">Painel de Indicadores Municipais</h1>
+<p data-i18n="hero_subtitle">Dados oficiais • Atualização via Google Sheets</p>
+
     h1{
       margin:12px 0 8px;
       font-size:44px;line-height:1.02;
@@ -373,6 +392,11 @@
         <img src="./logo-prefeitura.svg" alt="Prefeitura de Campo Verde">
       </div>
     </div>
+<div class="lang-switch">
+  <button class="lang-btn" data-lang="pt" title="Português">🇧🇷</button>
+  <button class="lang-btn" data-lang="en" title="English">🇺🇸</button>
+  <button class="lang-btn" data-lang="zh" title="中文（简体）">🇨🇳</button>
+</div>
 
     <div class="top-highlight">
       <div class="pill pill-yellow">⭐ Destaque</div>
@@ -698,6 +722,50 @@
   <script>
     document.getElementById("y").textContent = new Date().getFullYear();
   </script>
+  <script>
+  const translations = {
+    pt: {
+      hero_title: "Painel de Indicadores Municipais",
+      hero_subtitle: "Dados oficiais • Atualização via Google Sheets",
+    },
+    en: {
+      hero_title: "Municipal Indicators Dashboard",
+      hero_subtitle: "Official data • Updated via Google Sheets",
+    },
+    zh: {
+      hero_title: "市政指标仪表板",
+      hero_subtitle: "官方数据 • 通过 Google 表格更新",
+    }
+  };
+
+  function applyLanguage(lang){
+    const dict = translations[lang] || translations.pt;
+
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+      const key = el.getAttribute("data-i18n");
+      if (dict[key]) el.textContent = dict[key];
+    });
+
+    localStorage.setItem("lang", lang);
+    document.documentElement.lang = (lang === "zh") ? "zh-Hans" : lang;
+  }
+
+  // clique nas bandeiras
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".lang-btn");
+    if (!btn) return;
+    applyLanguage(btn.dataset.lang);
+  });
+
+  // idioma inicial
+  const saved = localStorage.getItem("lang");
+  const browser = (navigator.language || "pt").toLowerCase();
+  const initial =
+    saved || (browser.startsWith("zh") ? "zh" : browser.startsWith("en") ? "en" : "pt");
+
+  applyLanguage(initial);
+</script>
+
 </body>
 </html>
 
